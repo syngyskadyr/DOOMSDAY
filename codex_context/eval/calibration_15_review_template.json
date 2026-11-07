@@ -1,0 +1,2172 @@
+{
+  "schema_version": "1",
+  "checklist_version": "1",
+  "checklist_hash": "7e57b9aa24a3ef1bef9c6c7c64ad977402e2986cd710d491376a697fe0a0d13e",
+  "checklist_snapshot": {
+    "schema_version": "1.0",
+    "checklist_id": "freedom-cqa",
+    "version": "1",
+    "title": "Чек-лист качества чатов",
+    "sections": [
+      {
+        "id": "contact_and_needs",
+        "title": "Начало и понимание запроса"
+      },
+      {
+        "id": "security_and_solution",
+        "title": "Безопасность и решение"
+      },
+      {
+        "id": "dialogue_and_closing",
+        "title": "Ведение и завершение диалога"
+      },
+      {
+        "id": "gross_violations",
+        "title": "Грубые нарушения"
+      }
+    ],
+    "criteria": [
+      {
+        "id": "01",
+        "section_id": "contact_and_needs",
+        "title": "Установление контакта",
+        "kind": "binary",
+        "weight": 10,
+        "allowed_answers": [
+          "yes",
+          "no"
+        ],
+        "instruction": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "02",
+        "section_id": "contact_and_needs",
+        "title": "Выявление потребности",
+        "kind": "binary",
+        "weight": 15,
+        "allowed_answers": [
+          "yes",
+          "no",
+          "na"
+        ],
+        "instruction": "Да — оператор учёл известные детали и уточнил недостающее до ответа. N/A — данных для ответа хватало с самого начала.",
+        "na_allowed": true,
+        "na_rule": "Данных для ответа хватало с самого начала.",
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "03",
+        "section_id": "security_and_solution",
+        "title": "Идентификация",
+        "kind": "binary",
+        "weight": 20,
+        "allowed_answers": [
+          "yes",
+          "no",
+          "na"
+        ],
+        "instruction": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. N/A — запрос не требовал идентификации. Общий вопрос о тарифах не требует идентификации. Если требовалась проверка личности перед защищённым действием и она не подтверждена в чате, ставьте «Нет».",
+        "na_allowed": true,
+        "na_rule": "Запрос не требовал идентификации.",
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "04",
+        "section_id": "security_and_solution",
+        "title": "Корректная и полная консультация",
+        "kind": "scale",
+        "weight": 20,
+        "allowed_answers": [
+          0,
+          5,
+          10,
+          15,
+          20,
+          "na"
+        ],
+        "instruction": "Оцените ответ или следующий шаг по шкале на стр. 2. N/A — чат закончился до того, как клиент сформулировал запрос.",
+        "na_allowed": true,
+        "na_rule": "Чат закончился до того, как клиент сформулировал запрос.",
+        "scale_max": 20,
+        "levels": [
+          {
+            "value": 20,
+            "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+          },
+          {
+            "value": 15,
+            "description": "Основной вопрос решён, пропущена второстепенная деталь."
+          },
+          {
+            "value": 10,
+            "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+          },
+          {
+            "value": 5,
+            "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+          },
+          {
+            "value": 0,
+            "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+          }
+        ],
+        "flag_types": []
+      },
+      {
+        "id": "05",
+        "section_id": "dialogue_and_closing",
+        "title": "Эмпатия и клиентоориентированность",
+        "kind": "binary",
+        "weight": 15,
+        "allowed_answers": [
+          "yes",
+          "no"
+        ],
+        "instruction": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "06",
+        "section_id": "dialogue_and_closing",
+        "title": "Управление диалогом, скорость и грамотность",
+        "kind": "scale",
+        "weight": 15,
+        "allowed_answers": [
+          0,
+          4,
+          7,
+          10
+        ],
+        "instruction": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале на стр. 2.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": 10,
+        "levels": [
+          {
+            "value": 10,
+            "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+          },
+          {
+            "value": 7,
+            "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+          },
+          {
+            "value": 4,
+            "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+          },
+          {
+            "value": 0,
+            "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+          }
+        ],
+        "flag_types": []
+      },
+      {
+        "id": "07",
+        "section_id": "dialogue_and_closing",
+        "title": "Завершение",
+        "kind": "binary",
+        "weight": 5,
+        "allowed_answers": [
+          "yes",
+          "no",
+          "na"
+        ],
+        "instruction": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался. N/A — чат оборвался до возможности его завершить. Пример обоснования из чек-листа: «Завершение — Нет. После ответа на вопрос оператор закрыл чат без прощания. Основание — последняя реплика оператора и сообщение о закрытии чата».",
+        "na_allowed": true,
+        "na_rule": "Чат оборвался до возможности его завершить.",
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "08",
+        "section_id": "gross_violations",
+        "title": "Грубые ошибки",
+        "kind": "flag",
+        "weight": null,
+        "allowed_answers": [
+          "yes",
+          "no"
+        ],
+        "instruction": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Ставьте флаг, если оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения в переписке. Согласие клиента или перевод денег для отметки не требуются.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": null,
+        "levels": [],
+        "flag_types": [
+          "insult",
+          "off_company_paid_service",
+          "confidential_disclosure"
+        ]
+      }
+    ]
+  },
+  "purpose": "Independent human annotation of 15 DEV records; no model answers or selection hypotheses",
+  "cases": [
+    {
+      "conversation_id": "p1-ru-001",
+      "language": "RU",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "d0be2bfd483c8d3ac180755e81b7f21f029b6727c148b740150024d77b6cec66",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-001",
+      "language": "KZ",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "e4ce278aff6d410b9ae7220541e68a380008ffaf113ee0a8a09c779c57ab7077",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-003",
+      "language": "EN",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "03cde48529975a2cd558c128b82cfc61b987e48cd08d2e3073bcc209fef3d875",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-006",
+      "language": "RU",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "b853b5dfa23dd62dd5d8b2e288954f42acefbcead3daa22be0b09fde5c0bd2a0",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-003",
+      "language": "KZ",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "dc6c087a9f3a6da94961394f7468e555c31e1f9c4888d60ce2d6038b951ac860",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-006",
+      "language": "EN",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "28a0493fb11f5d821ca32cfb1a3eac48227b7de70f01378cf860e4fa92966b45",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-023",
+      "language": "RU",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "fc190d75a449e715586b1c067647f427a5bcc92cbcf8fe6e8bbadf48297e0341",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-013",
+      "language": "KZ",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "539a80e5937d7430d203678e6329b184bcc8b2aea3f8dc557f9940b222212a36",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-013",
+      "language": "EN",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "abd3a29ee70ae8aa84bc326ed304404b0069ceae3681660384f96f0fd01dc550",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-025",
+      "language": "RU",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "3286b703bf3de401378ade231604d8f7a3e2e7012652e0f2aaa91df21cb61314",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-009",
+      "language": "KZ",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "028aea4169db6b61ad0f2b27b94090d9cded618516141cdf397d7a36b4eeb733",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-014",
+      "language": "EN",
+      "split": "development",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "486fd1f71f956b22ee043d9ee56488d10d812c36d83022d5f625bddde63d6b42",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-016",
+      "language": "RU",
+      "split": "reserved",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "4cf6fa3d3d50b3454fd77ea5bb8f0dfe7e48fb6447b756e24ccfada46bffac0d",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-014",
+      "language": "KZ",
+      "split": "reserved",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "affb30149c96da37891a14de5ce66c231197c6b99bc3b06146199ee81227f5f9",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-011",
+      "language": "EN",
+      "split": "reserved",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "dialogue_hash": "6bec18ef32cb3fe2f2fd736357478f1832bd5fcd92c5d473fc37c93dc0a76138",
+      "criteria": [
+        {
+          "id": "01",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "02",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "03",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "04",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "05",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "06",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "07",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        },
+        {
+          "id": "08",
+          "status": "evaluated",
+          "answer": null,
+          "reason": "",
+          "evidence_message_ids": [],
+          "checked_range": null,
+          "na_reason": null,
+          "uncertainty": null,
+          "violations": [],
+          "evidence_review": {
+            "checked": false,
+            "supported": null
+          }
+        }
+      ]
+    }
+  ],
+  "selection_hash": "ff5a249cb4241428c8af7d8af54658a830bb3557f91fe97e90ae6e19a09c106b"
+}
