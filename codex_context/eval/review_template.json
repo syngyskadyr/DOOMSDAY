@@ -1,0 +1,312 @@
+{
+  "schema_version": "1",
+  "checklist_version": "1",
+  "source_filename": "invoke.json",
+  "purpose": "Пустой шаблон независимой ручной разметки пяти стартовых диалогов.",
+  "annotation_policy": {
+    "initially_labeled_records": 0,
+    "eligible_for_quality_metrics": "Only a complete, validated record with annotation_status='human_reviewed' and a non-null reviewer.",
+    "empty_labels_behavior": "Quality metrics are unavailable. Do not report 100% or agreement with draft hypotheses.",
+    "before_review": "Read the source transcript and checklist without model predictions; resolve disagreements before marking human_reviewed.",
+    "score_policy": "Compute totals from reviewed answers and the pinned checklist version; do not type a model-proposed total as a label."
+  },
+  "message_id_policy": {
+    "source": "invoke.json: data.records[].transcript",
+    "formula": "m + (source_index + 1), padded to at least 3 digits; source_index starts at 0",
+    "examples": {
+      "transcript[0]": "m001",
+      "transcript[9]": "m010",
+      "transcript[11]": "m012"
+    },
+    "preserve": "Assign IDs before filtering; preserve original order and timestamp. Include client, operator, bot and system.",
+    "evidence": "Resolve message IDs within the same conversation. A bot greeting is context, not an operator greeting; a system identity confirmation can be relevant evidence."
+  },
+  "cases": [
+    {
+      "conversation_id": "p1-ru-001",
+      "language": "RU",
+      "split": "debug",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "criteria": [
+        {
+          "id": "01",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "02",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "03",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "04",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "05",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "06",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "07",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "08",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-006",
+      "language": "RU",
+      "split": "debug",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "criteria": [
+        {
+          "id": "01",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "02",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "03",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "04",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "05",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "06",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "07",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "08",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-023",
+      "language": "RU",
+      "split": "debug",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "criteria": [
+        {
+          "id": "01",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "02",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "03",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "04",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "05",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "06",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "07",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "08",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-003",
+      "language": "KZ",
+      "split": "debug",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "criteria": [
+        {
+          "id": "01",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "02",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "03",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "04",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "05",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "06",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "07",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "08",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-014",
+      "language": "EN",
+      "split": "debug",
+      "annotation_status": "unreviewed",
+      "reviewer": null,
+      "criteria": [
+        {
+          "id": "01",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "02",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "03",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "04",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "05",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "06",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "07",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        },
+        {
+          "id": "08",
+          "answer": null,
+          "evidence_message_ids": [],
+          "reason": ""
+        }
+      ]
+    }
+  ],
+  "data_path": "data/dev.json"
+}

@@ -1,0 +1,9 @@
+# Local source conversations and results must not be published with code.
+/data/
+/results/
+/runs/
+.env
+.env.*
+!env.example
+__pycache__/
+

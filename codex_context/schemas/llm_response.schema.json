@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CQA LLM assessment, application validation contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "conversation_id",
+    "checklist_version",
+    "criteria"
+  ],
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checklist_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/criterion"
+      }
+    }
+  },
+  "$defs": {
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^m[0-9]{3,}$"
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_message_id",
+        "end_message_id"
+      ],
+      "properties": {
+        "start_message_id": {
+          "type": "string",
+          "pattern": "^m[0-9]{3,}$"
+        },
+        "end_message_id": {
+          "type": "string",
+          "pattern": "^m[0-9]{3,}$"
+        }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "reason",
+        "evidence_message_ids"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_message_ids": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ids"
+            }
+          ],
+          "minItems": 1
+        }
+      }
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criterion_id",
+        "status",
+        "answer",
+        "reason",
+        "evidence_message_ids",
+        "checked_range",
+        "na_reason",
+        "uncertainty",
+        "violations"
+      ],
+      "properties": {
+        "criterion_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "evaluated",
+            "needs_review"
+          ]
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "enum": [
+                "yes",
+                "no",
+                "na"
+              ]
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_message_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "checked_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/range"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "na_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/violation"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "needs_review"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "answer": {
+                "type": "null"
+              },
+              "uncertainty": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "answer": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "answer": {
+                "const": "na"
+              }
+            },
+            "required": [
+              "answer"
+            ]
+          },
+          "then": {
+            "properties": {
+              "na_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "na_reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
