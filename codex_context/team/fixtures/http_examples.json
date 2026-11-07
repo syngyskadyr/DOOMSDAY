@@ -1,0 +1,1440 @@
+{
+  "synthetic": true,
+  "note": "Все данные выдуманы. Это независимые примеры JSON-форматов, не единый снимок базы и не ответы реальной модели. Примеры не подменяют проверку работающего приложения.",
+  "health": {
+    "status": "ok",
+    "api_version": "1",
+    "evaluator_status": "unavailable",
+    "evaluator_message": "Синтетический пример; реальный оценщик не запускался"
+  },
+  "checklist": {
+    "schema_version": "1.0",
+    "checklist_id": "freedom-cqa",
+    "version": "1",
+    "title": "Чек-лист качества чатов",
+    "sections": [
+      {
+        "id": "contact_and_needs",
+        "title": "Начало и понимание запроса"
+      },
+      {
+        "id": "security_and_solution",
+        "title": "Безопасность и решение"
+      },
+      {
+        "id": "dialogue_and_closing",
+        "title": "Ведение и завершение диалога"
+      },
+      {
+        "id": "gross_violations",
+        "title": "Грубые нарушения"
+      }
+    ],
+    "criteria": [
+      {
+        "id": "01",
+        "section_id": "contact_and_needs",
+        "title": "Установление контакта",
+        "kind": "binary",
+        "weight": 10,
+        "allowed_answers": [
+          "yes",
+          "no"
+        ],
+        "instruction": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "02",
+        "section_id": "contact_and_needs",
+        "title": "Выявление потребности",
+        "kind": "binary",
+        "weight": 15,
+        "allowed_answers": [
+          "yes",
+          "no",
+          "na"
+        ],
+        "instruction": "Да — оператор учёл известные детали и уточнил недостающее до ответа. N/A — данных для ответа хватало с самого начала.",
+        "na_allowed": true,
+        "na_rule": "Данных для ответа хватало с самого начала.",
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "03",
+        "section_id": "security_and_solution",
+        "title": "Идентификация",
+        "kind": "binary",
+        "weight": 20,
+        "allowed_answers": [
+          "yes",
+          "no",
+          "na"
+        ],
+        "instruction": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. N/A — запрос не требовал идентификации. Общий вопрос о тарифах не требует идентификации. Если требовалась проверка личности перед защищённым действием и она не подтверждена в чате, ставьте «Нет».",
+        "na_allowed": true,
+        "na_rule": "Запрос не требовал идентификации.",
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "04",
+        "section_id": "security_and_solution",
+        "title": "Корректная и полная консультация",
+        "kind": "scale",
+        "weight": 20,
+        "allowed_answers": [
+          0,
+          5,
+          10,
+          15,
+          20,
+          "na"
+        ],
+        "instruction": "Оцените ответ или следующий шаг по шкале на стр. 2. N/A — чат закончился до того, как клиент сформулировал запрос.",
+        "na_allowed": true,
+        "na_rule": "Чат закончился до того, как клиент сформулировал запрос.",
+        "scale_max": 20,
+        "levels": [
+          {
+            "value": 20,
+            "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+          },
+          {
+            "value": 15,
+            "description": "Основной вопрос решён, пропущена второстепенная деталь."
+          },
+          {
+            "value": 10,
+            "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+          },
+          {
+            "value": 5,
+            "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+          },
+          {
+            "value": 0,
+            "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+          }
+        ],
+        "flag_types": []
+      },
+      {
+        "id": "05",
+        "section_id": "dialogue_and_closing",
+        "title": "Эмпатия и клиентоориентированность",
+        "kind": "binary",
+        "weight": 15,
+        "allowed_answers": [
+          "yes",
+          "no"
+        ],
+        "instruction": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "06",
+        "section_id": "dialogue_and_closing",
+        "title": "Управление диалогом, скорость и грамотность",
+        "kind": "scale",
+        "weight": 15,
+        "allowed_answers": [
+          0,
+          4,
+          7,
+          10
+        ],
+        "instruction": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале на стр. 2.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": 10,
+        "levels": [
+          {
+            "value": 10,
+            "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+          },
+          {
+            "value": 7,
+            "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+          },
+          {
+            "value": 4,
+            "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+          },
+          {
+            "value": 0,
+            "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+          }
+        ],
+        "flag_types": []
+      },
+      {
+        "id": "07",
+        "section_id": "dialogue_and_closing",
+        "title": "Завершение",
+        "kind": "binary",
+        "weight": 5,
+        "allowed_answers": [
+          "yes",
+          "no",
+          "na"
+        ],
+        "instruction": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался. N/A — чат оборвался до возможности его завершить. Пример обоснования из чек-листа: «Завершение — Нет. После ответа на вопрос оператор закрыл чат без прощания. Основание — последняя реплика оператора и сообщение о закрытии чата».",
+        "na_allowed": true,
+        "na_rule": "Чат оборвался до возможности его завершить.",
+        "scale_max": null,
+        "levels": [],
+        "flag_types": []
+      },
+      {
+        "id": "08",
+        "section_id": "gross_violations",
+        "title": "Грубые ошибки",
+        "kind": "flag",
+        "weight": null,
+        "allowed_answers": [
+          "yes",
+          "no"
+        ],
+        "instruction": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Ставьте флаг, если оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения в переписке. Согласие клиента или перевод денег для отметки не требуются.",
+        "na_allowed": false,
+        "na_rule": null,
+        "scale_max": null,
+        "levels": [],
+        "flag_types": [
+          "insult",
+          "off_company_paid_service",
+          "confidential_disclosure"
+        ]
+      }
+    ]
+  },
+  "checklist_versions": {
+    "items": [
+      {
+        "checklist_id": "freedom-cqa",
+        "version": "1",
+        "title": "Чек-лист качества чатов"
+      }
+    ],
+    "current_version": "1"
+  },
+  "import_result": {
+    "imported": 1,
+    "skipped": 0,
+    "conversation_ids": [
+      "synthetic-format-001"
+    ]
+  },
+  "conversation_page": {
+    "items": [
+      {
+        "conversation_id": "synthetic-format-001",
+        "channel": "agent chat",
+        "language": "RU",
+        "message_count": 4,
+        "has_audio": false,
+        "synthetic": true,
+        "has_open_appeals": false,
+        "latest_evaluation": {
+          "evaluation_id": "synthetic-eval-001",
+          "checklist_version": "1",
+          "status": "completed",
+          "created_at": "2026-11-07T12:00:00Z",
+          "revision": 1,
+          "total_score": 100.0,
+          "critical_error": false
+        }
+      }
+    ],
+    "total": 1,
+    "limit": 100,
+    "offset": 0
+  },
+  "conversation_detail": {
+    "conversation_id": "synthetic-format-001",
+    "channel": "agent chat",
+    "language": "RU",
+    "audio_url": null,
+    "synthetic": true,
+    "messages": [
+      {
+        "message_id": "m001",
+        "source_index": 0,
+        "timestamp": "00:00",
+        "speaker": "client",
+        "text": "Здравствуйте, где найти раздел помощи?",
+        "audio_offset_seconds": null
+      },
+      {
+        "message_id": "m002",
+        "source_index": 1,
+        "timestamp": "00:10",
+        "speaker": "operator",
+        "text": "Здравствуйте! Меня зовут Алексей. Откройте «Помощь» в меню приложения.",
+        "audio_offset_seconds": null
+      },
+      {
+        "message_id": "m003",
+        "source_index": 2,
+        "timestamp": "00:20",
+        "speaker": "client",
+        "text": "Нашёл, спасибо.",
+        "audio_offset_seconds": null
+      },
+      {
+        "message_id": "m004",
+        "source_index": 3,
+        "timestamp": "00:30",
+        "speaker": "operator",
+        "text": "Итак, раздел помощи найден. Если появятся ещё вопросы, обращайтесь. До свидания!",
+        "audio_offset_seconds": null
+      }
+    ],
+    "latest_evaluation_id": "synthetic-eval-001",
+    "evaluation_history": [
+      {
+        "evaluation_id": "synthetic-eval-001",
+        "checklist_version": "1",
+        "status": "completed",
+        "created_at": "2026-11-07T12:00:00Z",
+        "revision": 1,
+        "total_score": 100.0,
+        "critical_error": false
+      }
+    ]
+  },
+  "evaluation_completed": {
+    "evaluation_id": "synthetic-eval-001",
+    "conversation_id": "synthetic-format-001",
+    "checklist_version": "1",
+    "created_at": "2026-11-07T12:00:00Z",
+    "status": "completed",
+    "revision": 1,
+    "synthetic": true,
+    "checklist_snapshot": {
+      "schema_version": "1.0",
+      "checklist_id": "freedom-cqa",
+      "version": "1",
+      "title": "Чек-лист качества чатов",
+      "sections": [
+        {
+          "id": "contact_and_needs",
+          "title": "Начало и понимание запроса"
+        },
+        {
+          "id": "security_and_solution",
+          "title": "Безопасность и решение"
+        },
+        {
+          "id": "dialogue_and_closing",
+          "title": "Ведение и завершение диалога"
+        },
+        {
+          "id": "gross_violations",
+          "title": "Грубые нарушения"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "01",
+          "section_id": "contact_and_needs",
+          "title": "Установление контакта",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "02",
+          "section_id": "contact_and_needs",
+          "title": "Выявление потребности",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — оператор учёл известные детали и уточнил недостающее до ответа. N/A — данных для ответа хватало с самого начала.",
+          "na_allowed": true,
+          "na_rule": "Данных для ответа хватало с самого начала.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "03",
+          "section_id": "security_and_solution",
+          "title": "Идентификация",
+          "kind": "binary",
+          "weight": 20,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. N/A — запрос не требовал идентификации. Общий вопрос о тарифах не требует идентификации. Если требовалась проверка личности перед защищённым действием и она не подтверждена в чате, ставьте «Нет».",
+          "na_allowed": true,
+          "na_rule": "Запрос не требовал идентификации.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "04",
+          "section_id": "security_and_solution",
+          "title": "Корректная и полная консультация",
+          "kind": "scale",
+          "weight": 20,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "instruction": "Оцените ответ или следующий шаг по шкале на стр. 2. N/A — чат закончился до того, как клиент сформулировал запрос.",
+          "na_allowed": true,
+          "na_rule": "Чат закончился до того, как клиент сформулировал запрос.",
+          "scale_max": 20,
+          "levels": [
+            {
+              "value": 20,
+              "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+            },
+            {
+              "value": 15,
+              "description": "Основной вопрос решён, пропущена второстепенная деталь."
+            },
+            {
+              "value": 10,
+              "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+            },
+            {
+              "value": 5,
+              "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+            },
+            {
+              "value": 0,
+              "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+            }
+          ],
+          "flag_types": []
+        },
+        {
+          "id": "05",
+          "section_id": "dialogue_and_closing",
+          "title": "Эмпатия и клиентоориентированность",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "06",
+          "section_id": "dialogue_and_closing",
+          "title": "Управление диалогом, скорость и грамотность",
+          "kind": "scale",
+          "weight": 15,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "instruction": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале на стр. 2.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": 10,
+          "levels": [
+            {
+              "value": 10,
+              "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+            },
+            {
+              "value": 7,
+              "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+            },
+            {
+              "value": 4,
+              "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+            },
+            {
+              "value": 0,
+              "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+            }
+          ],
+          "flag_types": []
+        },
+        {
+          "id": "07",
+          "section_id": "dialogue_and_closing",
+          "title": "Завершение",
+          "kind": "binary",
+          "weight": 5,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался. N/A — чат оборвался до возможности его завершить. Пример обоснования из чек-листа: «Завершение — Нет. После ответа на вопрос оператор закрыл чат без прощания. Основание — последняя реплика оператора и сообщение о закрытии чата».",
+          "na_allowed": true,
+          "na_rule": "Чат оборвался до возможности его завершить.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "08",
+          "section_id": "gross_violations",
+          "title": "Грубые ошибки",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Ставьте флаг, если оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения в переписке. Согласие клиента или перевод денег для отметки не требуются.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": [
+            "insult",
+            "off_company_paid_service",
+            "confidential_disclosure"
+          ]
+        }
+      ]
+    },
+    "original": {
+      "assessment": {
+        "conversation_id": "synthetic-format-001",
+        "checklist_version": "1",
+        "criteria": [
+          {
+            "criterion_id": "01",
+            "status": "evaluated",
+            "answer": "yes",
+            "reason": "В первом ответе есть приветствие и представление на языке клиента.",
+            "evidence_message_ids": [
+              "m002"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "02",
+            "status": "evaluated",
+            "answer": "na",
+            "reason": "Запрос сразу содержит достаточно сведений для ответа.",
+            "evidence_message_ids": [
+              "m001"
+            ],
+            "checked_range": null,
+            "na_reason": "Данных для ответа хватало с самого начала.",
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "03",
+            "status": "evaluated",
+            "answer": "na",
+            "reason": "Дана общая инструкция по навигации без защищённого действия.",
+            "evidence_message_ids": [
+              "m001",
+              "m002"
+            ],
+            "checked_range": null,
+            "na_reason": "Запрос не требовал идентификации.",
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "04",
+            "status": "evaluated",
+            "answer": 20,
+            "reason": "Дан конкретный путь, клиент подтвердил, что нашёл раздел.",
+            "evidence_message_ids": [
+              "m002",
+              "m003"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "05",
+            "status": "evaluated",
+            "answer": "yes",
+            "reason": "Оператор общается вежливо; недовольства клиента нет.",
+            "evidence_message_ids": [
+              "m002",
+              "m004"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "06",
+            "status": "evaluated",
+            "answer": 10,
+            "reason": "Ответ понятный и последовательный, явного ожидания нет.",
+            "evidence_message_ids": [
+              "m002",
+              "m004"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "07",
+            "status": "evaluated",
+            "answer": "yes",
+            "reason": "Есть итог, предложение помощи и прощание.",
+            "evidence_message_ids": [
+              "m004"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "08",
+            "status": "evaluated",
+            "answer": "no",
+            "reason": "В доступном разговоре не выявлено ни одного из трёх типов грубых нарушений.",
+            "evidence_message_ids": [
+              "m002",
+              "m004"
+            ],
+            "checked_range": {
+              "start_message_id": "m001",
+              "end_message_id": "m004"
+            },
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          }
+        ]
+      },
+      "calculation": {
+        "total_score": 100.0,
+        "applicable_weight": 65.0,
+        "no_applicable_criteria": false,
+        "rows": [
+          {
+            "criterion_id": "01",
+            "base_weight": 10,
+            "effective_weight": 15.384615384615385,
+            "earned_points": 15.384615384615385
+          },
+          {
+            "criterion_id": "02",
+            "base_weight": 15,
+            "effective_weight": 0.0,
+            "earned_points": 0.0
+          },
+          {
+            "criterion_id": "03",
+            "base_weight": 20,
+            "effective_weight": 0.0,
+            "earned_points": 0.0
+          },
+          {
+            "criterion_id": "04",
+            "base_weight": 20,
+            "effective_weight": 30.76923076923077,
+            "earned_points": 30.76923076923077
+          },
+          {
+            "criterion_id": "05",
+            "base_weight": 15,
+            "effective_weight": 23.076923076923077,
+            "earned_points": 23.076923076923077
+          },
+          {
+            "criterion_id": "06",
+            "base_weight": 15,
+            "effective_weight": 23.076923076923077,
+            "earned_points": 23.076923076923077
+          },
+          {
+            "criterion_id": "07",
+            "base_weight": 5,
+            "effective_weight": 7.6923076923076925,
+            "earned_points": 7.6923076923076925
+          },
+          {
+            "criterion_id": "08",
+            "base_weight": null,
+            "effective_weight": null,
+            "earned_points": null
+          }
+        ],
+        "sections": [
+          {
+            "section_id": "contact_and_needs",
+            "earned_points": 15.384615384615385,
+            "possible_points": 15.384615384615385
+          },
+          {
+            "section_id": "security_and_solution",
+            "earned_points": 30.76923076923077,
+            "possible_points": 30.76923076923077
+          },
+          {
+            "section_id": "dialogue_and_closing",
+            "earned_points": 53.84615384615385,
+            "possible_points": 53.84615384615385
+          }
+        ]
+      },
+      "critical_error": false
+    },
+    "final": {
+      "assessment": {
+        "conversation_id": "synthetic-format-001",
+        "checklist_version": "1",
+        "criteria": [
+          {
+            "criterion_id": "01",
+            "status": "evaluated",
+            "answer": "yes",
+            "reason": "В первом ответе есть приветствие и представление на языке клиента.",
+            "evidence_message_ids": [
+              "m002"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "02",
+            "status": "evaluated",
+            "answer": "na",
+            "reason": "Запрос сразу содержит достаточно сведений для ответа.",
+            "evidence_message_ids": [
+              "m001"
+            ],
+            "checked_range": null,
+            "na_reason": "Данных для ответа хватало с самого начала.",
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "03",
+            "status": "evaluated",
+            "answer": "na",
+            "reason": "Дана общая инструкция по навигации без защищённого действия.",
+            "evidence_message_ids": [
+              "m001",
+              "m002"
+            ],
+            "checked_range": null,
+            "na_reason": "Запрос не требовал идентификации.",
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "04",
+            "status": "evaluated",
+            "answer": 20,
+            "reason": "Дан конкретный путь, клиент подтвердил, что нашёл раздел.",
+            "evidence_message_ids": [
+              "m002",
+              "m003"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "05",
+            "status": "evaluated",
+            "answer": "yes",
+            "reason": "Оператор общается вежливо; недовольства клиента нет.",
+            "evidence_message_ids": [
+              "m002",
+              "m004"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "06",
+            "status": "evaluated",
+            "answer": 10,
+            "reason": "Ответ понятный и последовательный, явного ожидания нет.",
+            "evidence_message_ids": [
+              "m002",
+              "m004"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "07",
+            "status": "evaluated",
+            "answer": "yes",
+            "reason": "Есть итог, предложение помощи и прощание.",
+            "evidence_message_ids": [
+              "m004"
+            ],
+            "checked_range": null,
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          },
+          {
+            "criterion_id": "08",
+            "status": "evaluated",
+            "answer": "no",
+            "reason": "В доступном разговоре не выявлено ни одного из трёх типов грубых нарушений.",
+            "evidence_message_ids": [
+              "m002",
+              "m004"
+            ],
+            "checked_range": {
+              "start_message_id": "m001",
+              "end_message_id": "m004"
+            },
+            "na_reason": null,
+            "uncertainty": null,
+            "violations": []
+          }
+        ]
+      },
+      "calculation": {
+        "total_score": 100.0,
+        "applicable_weight": 65.0,
+        "no_applicable_criteria": false,
+        "rows": [
+          {
+            "criterion_id": "01",
+            "base_weight": 10,
+            "effective_weight": 15.384615384615385,
+            "earned_points": 15.384615384615385
+          },
+          {
+            "criterion_id": "02",
+            "base_weight": 15,
+            "effective_weight": 0.0,
+            "earned_points": 0.0
+          },
+          {
+            "criterion_id": "03",
+            "base_weight": 20,
+            "effective_weight": 0.0,
+            "earned_points": 0.0
+          },
+          {
+            "criterion_id": "04",
+            "base_weight": 20,
+            "effective_weight": 30.76923076923077,
+            "earned_points": 30.76923076923077
+          },
+          {
+            "criterion_id": "05",
+            "base_weight": 15,
+            "effective_weight": 23.076923076923077,
+            "earned_points": 23.076923076923077
+          },
+          {
+            "criterion_id": "06",
+            "base_weight": 15,
+            "effective_weight": 23.076923076923077,
+            "earned_points": 23.076923076923077
+          },
+          {
+            "criterion_id": "07",
+            "base_weight": 5,
+            "effective_weight": 7.6923076923076925,
+            "earned_points": 7.6923076923076925
+          },
+          {
+            "criterion_id": "08",
+            "base_weight": null,
+            "effective_weight": null,
+            "earned_points": null
+          }
+        ],
+        "sections": [
+          {
+            "section_id": "contact_and_needs",
+            "earned_points": 15.384615384615385,
+            "possible_points": 15.384615384615385
+          },
+          {
+            "section_id": "security_and_solution",
+            "earned_points": 30.76923076923077,
+            "possible_points": 30.76923076923077
+          },
+          {
+            "section_id": "dialogue_and_closing",
+            "earned_points": 53.84615384615385,
+            "possible_points": 53.84615384615385
+          }
+        ]
+      },
+      "critical_error": false
+    },
+    "metadata": {
+      "model": null,
+      "cache_hit": false,
+      "api_calls": 0,
+      "retry_count": 0,
+      "latency_ms": null,
+      "usage": null,
+      "estimated_cost_usd": null,
+      "cost_note": "Синтетический пример формата. Вызова модели не было.",
+      "dialogue_hash": null,
+      "checklist_hash": null,
+      "prompt_hash": null
+    },
+    "error": null,
+    "appeals": []
+  },
+  "evaluation_queued": {
+    "evaluation_id": "synthetic-eval-queued",
+    "conversation_id": "synthetic-format-001",
+    "checklist_version": "1",
+    "created_at": "2026-11-07T12:00:00Z",
+    "status": "queued",
+    "revision": 0,
+    "synthetic": true,
+    "checklist_snapshot": {
+      "schema_version": "1.0",
+      "checklist_id": "freedom-cqa",
+      "version": "1",
+      "title": "Чек-лист качества чатов",
+      "sections": [
+        {
+          "id": "contact_and_needs",
+          "title": "Начало и понимание запроса"
+        },
+        {
+          "id": "security_and_solution",
+          "title": "Безопасность и решение"
+        },
+        {
+          "id": "dialogue_and_closing",
+          "title": "Ведение и завершение диалога"
+        },
+        {
+          "id": "gross_violations",
+          "title": "Грубые нарушения"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "01",
+          "section_id": "contact_and_needs",
+          "title": "Установление контакта",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "02",
+          "section_id": "contact_and_needs",
+          "title": "Выявление потребности",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — оператор учёл известные детали и уточнил недостающее до ответа. N/A — данных для ответа хватало с самого начала.",
+          "na_allowed": true,
+          "na_rule": "Данных для ответа хватало с самого начала.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "03",
+          "section_id": "security_and_solution",
+          "title": "Идентификация",
+          "kind": "binary",
+          "weight": 20,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. N/A — запрос не требовал идентификации. Общий вопрос о тарифах не требует идентификации. Если требовалась проверка личности перед защищённым действием и она не подтверждена в чате, ставьте «Нет».",
+          "na_allowed": true,
+          "na_rule": "Запрос не требовал идентификации.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "04",
+          "section_id": "security_and_solution",
+          "title": "Корректная и полная консультация",
+          "kind": "scale",
+          "weight": 20,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "instruction": "Оцените ответ или следующий шаг по шкале на стр. 2. N/A — чат закончился до того, как клиент сформулировал запрос.",
+          "na_allowed": true,
+          "na_rule": "Чат закончился до того, как клиент сформулировал запрос.",
+          "scale_max": 20,
+          "levels": [
+            {
+              "value": 20,
+              "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+            },
+            {
+              "value": 15,
+              "description": "Основной вопрос решён, пропущена второстепенная деталь."
+            },
+            {
+              "value": 10,
+              "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+            },
+            {
+              "value": 5,
+              "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+            },
+            {
+              "value": 0,
+              "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+            }
+          ],
+          "flag_types": []
+        },
+        {
+          "id": "05",
+          "section_id": "dialogue_and_closing",
+          "title": "Эмпатия и клиентоориентированность",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "06",
+          "section_id": "dialogue_and_closing",
+          "title": "Управление диалогом, скорость и грамотность",
+          "kind": "scale",
+          "weight": 15,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "instruction": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале на стр. 2.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": 10,
+          "levels": [
+            {
+              "value": 10,
+              "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+            },
+            {
+              "value": 7,
+              "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+            },
+            {
+              "value": 4,
+              "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+            },
+            {
+              "value": 0,
+              "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+            }
+          ],
+          "flag_types": []
+        },
+        {
+          "id": "07",
+          "section_id": "dialogue_and_closing",
+          "title": "Завершение",
+          "kind": "binary",
+          "weight": 5,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался. N/A — чат оборвался до возможности его завершить. Пример обоснования из чек-листа: «Завершение — Нет. После ответа на вопрос оператор закрыл чат без прощания. Основание — последняя реплика оператора и сообщение о закрытии чата».",
+          "na_allowed": true,
+          "na_rule": "Чат оборвался до возможности его завершить.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "08",
+          "section_id": "gross_violations",
+          "title": "Грубые ошибки",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Ставьте флаг, если оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения в переписке. Согласие клиента или перевод денег для отметки не требуются.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": [
+            "insult",
+            "off_company_paid_service",
+            "confidential_disclosure"
+          ]
+        }
+      ]
+    },
+    "original": null,
+    "final": null,
+    "metadata": null,
+    "error": null,
+    "appeals": []
+  },
+  "evaluation_failed": {
+    "evaluation_id": "synthetic-eval-failed",
+    "conversation_id": "synthetic-format-001",
+    "checklist_version": "1",
+    "created_at": "2026-11-07T12:00:00Z",
+    "status": "failed",
+    "revision": 0,
+    "synthetic": true,
+    "checklist_snapshot": {
+      "schema_version": "1.0",
+      "checklist_id": "freedom-cqa",
+      "version": "1",
+      "title": "Чек-лист качества чатов",
+      "sections": [
+        {
+          "id": "contact_and_needs",
+          "title": "Начало и понимание запроса"
+        },
+        {
+          "id": "security_and_solution",
+          "title": "Безопасность и решение"
+        },
+        {
+          "id": "dialogue_and_closing",
+          "title": "Ведение и завершение диалога"
+        },
+        {
+          "id": "gross_violations",
+          "title": "Грубые нарушения"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "01",
+          "section_id": "contact_and_needs",
+          "title": "Установление контакта",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "02",
+          "section_id": "contact_and_needs",
+          "title": "Выявление потребности",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — оператор учёл известные детали и уточнил недостающее до ответа. N/A — данных для ответа хватало с самого начала.",
+          "na_allowed": true,
+          "na_rule": "Данных для ответа хватало с самого начала.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "03",
+          "section_id": "security_and_solution",
+          "title": "Идентификация",
+          "kind": "binary",
+          "weight": 20,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. N/A — запрос не требовал идентификации. Общий вопрос о тарифах не требует идентификации. Если требовалась проверка личности перед защищённым действием и она не подтверждена в чате, ставьте «Нет».",
+          "na_allowed": true,
+          "na_rule": "Запрос не требовал идентификации.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "04",
+          "section_id": "security_and_solution",
+          "title": "Корректная и полная консультация",
+          "kind": "scale",
+          "weight": 20,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "instruction": "Оцените ответ или следующий шаг по шкале на стр. 2. N/A — чат закончился до того, как клиент сформулировал запрос.",
+          "na_allowed": true,
+          "na_rule": "Чат закончился до того, как клиент сформулировал запрос.",
+          "scale_max": 20,
+          "levels": [
+            {
+              "value": 20,
+              "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+            },
+            {
+              "value": 15,
+              "description": "Основной вопрос решён, пропущена второстепенная деталь."
+            },
+            {
+              "value": 10,
+              "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+            },
+            {
+              "value": 5,
+              "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+            },
+            {
+              "value": 0,
+              "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+            }
+          ],
+          "flag_types": []
+        },
+        {
+          "id": "05",
+          "section_id": "dialogue_and_closing",
+          "title": "Эмпатия и клиентоориентированность",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "06",
+          "section_id": "dialogue_and_closing",
+          "title": "Управление диалогом, скорость и грамотность",
+          "kind": "scale",
+          "weight": 15,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "instruction": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале на стр. 2.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": 10,
+          "levels": [
+            {
+              "value": 10,
+              "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+            },
+            {
+              "value": 7,
+              "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+            },
+            {
+              "value": 4,
+              "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+            },
+            {
+              "value": 0,
+              "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+            }
+          ],
+          "flag_types": []
+        },
+        {
+          "id": "07",
+          "section_id": "dialogue_and_closing",
+          "title": "Завершение",
+          "kind": "binary",
+          "weight": 5,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "instruction": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался. N/A — чат оборвался до возможности его завершить. Пример обоснования из чек-листа: «Завершение — Нет. После ответа на вопрос оператор закрыл чат без прощания. Основание — последняя реплика оператора и сообщение о закрытии чата».",
+          "na_allowed": true,
+          "na_rule": "Чат оборвался до возможности его завершить.",
+          "scale_max": null,
+          "levels": [],
+          "flag_types": []
+        },
+        {
+          "id": "08",
+          "section_id": "gross_violations",
+          "title": "Грубые ошибки",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "instruction": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Ставьте флаг, если оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения в переписке. Согласие клиента или перевод денег для отметки не требуются.",
+          "na_allowed": false,
+          "na_rule": null,
+          "scale_max": null,
+          "levels": [],
+          "flag_types": [
+            "insult",
+            "off_company_paid_service",
+            "confidential_disclosure"
+          ]
+        }
+      ]
+    },
+    "original": null,
+    "final": null,
+    "metadata": null,
+    "error": {
+      "code": "PROVIDER_TIMEOUT",
+      "message": "Синтетический пример ошибки ожидания ответа модели",
+      "details": null
+    },
+    "appeals": []
+  },
+  "appeal_create_request": {
+    "criterion_id": "07",
+    "comment": "Прошу проверить основание оценки завершения. Это выдуманный пример обращения.",
+    "expected_revision": 1
+  },
+  "appeal_open": {
+    "appeal_id": "synthetic-appeal-001",
+    "evaluation_id": "synthetic-eval-001",
+    "criterion_id": "07",
+    "comment": "Прошу проверить основание оценки завершения. Это выдуманный пример обращения.",
+    "created_at": "2026-11-07T12:01:00Z",
+    "status": "open",
+    "based_on_revision": 1,
+    "before": {
+      "criterion_id": "07",
+      "status": "evaluated",
+      "answer": "yes",
+      "reason": "Есть итог, предложение помощи и прощание.",
+      "evidence_message_ids": [
+        "m004"
+      ],
+      "checked_range": null,
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    },
+    "resolution": null
+  },
+  "appeal_confirm_request": {
+    "decision": "confirm",
+    "reason": "Основание подтверждено по реплике m004. Синтетический пример.",
+    "replacement": null,
+    "expected_revision": 1
+  },
+  "unavailable_error": {
+    "error": {
+      "code": "EVALUATOR_UNAVAILABLE",
+      "message": "Оценщик пока не подключён",
+      "details": null
+    }
+  }
+}
