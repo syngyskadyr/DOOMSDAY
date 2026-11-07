@@ -225,7 +225,13 @@ __marimo__/
 /artifacts/
 /codex_context/data/
 /data/
-/results/
+/results/*
+!/results/dev/
+!/results/prod/
+/results/dev/*
+/results/prod/*
+!/results/dev/results.json
+!/results/prod/results.json
 /runs/
 /audio/
 /dev.json

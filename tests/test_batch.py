@@ -184,6 +184,85 @@ class BatchTests(unittest.TestCase):
             [{"role": "system", "content": "instruction"}, {"role": "user", "content": "full dialogue"}],
             tokenize=True, add_generation_prompt=True)
 
+    def test_template_kwargs_preserve_false_and_do_not_change_http_request(self):
+        import sys
+        from types import ModuleType
+        module = ModuleType("transformers")
+        module.AutoTokenizer = Mock()
+        tokenizer = module.AutoTokenizer.from_pretrained.return_value
+        tokenizer.apply_chat_template.return_value = [1, 2, 3]
+        supplied = {"enable_thinking": False}
+        with patch.dict(sys.modules, {"transformers": module}):
+            counter = load_token_counter(self.temp.name, chat_template_kwargs=supplied)
+            supplied["enable_thinking"] = True  # Caller mutation cannot change the captured settings.
+            self.assertEqual(counter(prepare_request(self.records[0], self.checklist)), 3)
+        self.assertIs(tokenizer.apply_chat_template.call_args.kwargs["enable_thinking"], False)
+        self.options["token_counter"] = counter
+        with patch("cqa_eval.evaluator._http_post", side_effect=self.envelope) as post:
+            self.run_batch(limit=1)
+        manifest = read_json(self.directory / "manifest.json")
+        self.assertEqual(manifest["preflight"]["chat_template_kwargs"], {"enable_thinking": False})
+        self.assertNotIn("chat_template_kwargs", post.call_args.args[1])
+
+    def test_changed_template_kwargs_block_resume_even_when_token_counts_equal(self):
+        import sys
+        from types import ModuleType
+        module = ModuleType("transformers")
+        module.AutoTokenizer = Mock()
+        module.AutoTokenizer.from_pretrained.return_value.apply_chat_template.return_value = [1] * 100
+        with patch.dict(sys.modules, {"transformers": module}):
+            self.options["token_counter"] = load_token_counter(self.temp.name, chat_template_kwargs={"enable_thinking": False})
+            with patch("cqa_eval.evaluator._http_post", side_effect=self.envelope):
+                self.run_batch(limit=1)
+            old_manifest = read_json(self.directory / "manifest.json")
+            self.options["token_counter"] = load_token_counter(self.temp.name, chat_template_kwargs={"enable_thinking": True})
+            with patch("cqa_eval.evaluator._http_post") as post, self.assertRaisesRegex(InputError, "changed"):
+                self.run_batch(resume=True)
+            post.assert_not_called()
+        self.assertEqual(old_manifest, read_json(self.directory / "manifest.json"))
+
+    def test_template_kwargs_reject_nonobjects_and_reserved_counting_controls(self):
+        invalid = [[], "false", False, {"enable_thinking": float("nan")}, {1: False}]
+        invalid += [{key: False} for key in (
+            "tokenize", "add_generation_prompt", "chat_template", "truncation", "max_length",
+            "return_tensors", "return_dict", "return_assistant_tokens_mask", "padding",
+            "conversation", "messages", "tools", "documents", "continue_final_message", "tokenizer_kwargs",
+        )]
+        for value in invalid:
+            with self.subTest(value=value), self.assertRaises(InputError):
+                load_token_counter(self.temp.name, chat_template_kwargs=value)
+
+    def test_cli_template_kwargs_are_strict_and_require_a_tokenizer(self):
+        source = Path(self.temp.name) / "input.json"
+        atomic_write(source, {"isSuccess": True, "data": {"records": self.records}})
+        args = ["batch", "--input", str(source), "--run-dir", str(self.directory),
+                "--context-window", "10000", "--max-output-tokens", "1024", "--preflight"]
+        cases = [(None, '{"enable_thinking":false}', "requires --tokenizer")]
+        cases += [(self.temp.name, text, None) for text in (
+            "null", "[]", "false", '"text"', "{invalid}", '{"tokenize":false}',
+            '{"enable_thinking":NaN}', '{"enable_thinking":false,"enable_thinking":true}',
+        )]
+        for directory, raw, expected in cases:
+            supplied = args + (["--tokenizer", directory] if directory else []) + ["--chat-template-kwargs", raw]
+            with self.subTest(raw=raw, directory=directory), \
+                    patch("cqa_eval.cli.Settings.from_env", return_value=self.settings), \
+                    patch("cqa_eval.cli.load_token_counter") as loader, \
+                    patch("cqa_eval.evaluator._http_post") as post, \
+                    redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(main(supplied), 2)
+                self.assertIn("error", json.loads(output.getvalue()))
+                if expected:
+                    self.assertIn(expected, output.getvalue())
+                loader.assert_not_called()
+                post.assert_not_called()
+        with patch("cqa_eval.cli.Settings.from_env", return_value=self.settings), \
+                patch("cqa_eval.cli.load_token_counter", return_value=lambda prepared: 100) as loader, \
+                patch("cqa_eval.evaluator._http_post") as post, redirect_stdout(io.StringIO()):
+            self.assertEqual(main(args + ["--tokenizer", self.temp.name,
+                                         "--chat-template-kwargs", '{"enable_thinking":false}']), 0)
+        loader.assert_called_once_with(Path(self.temp.name), chat_template_kwargs={"enable_thinking": False})
+        post.assert_not_called()
+
     def test_valid_but_unresolved_answer_is_saved_and_blocks_handoff(self):
         def unresolved(*args):
             envelope = self.envelope(*args)

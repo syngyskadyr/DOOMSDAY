@@ -78,6 +78,18 @@ class CqaTests(unittest.TestCase):
         self.assertEqual(result["total_score"], Decimal("100.00"))
         self.assertFalse(result["gross_error"])
 
+    def test_provider_schema_binds_checklist_version_separately_from_schema_version(self):
+        for version in ("1", "2"):
+            checklist = deepcopy(self.checklist)
+            checklist["version"] = version
+            validator = Draft202012Validator(provider_schema(checklist))
+            response = deepcopy(self.response)
+            response["checklist_version"] = version
+            self.assertTrue(validator.is_valid(response))
+            for wrong_version in (checklist["schema_version"], "another-version"):
+                response["checklist_version"] = wrong_version
+                self.assertFalse(validator.is_valid(response))
+
     def test_all_acceptance_cases(self):
         fixtures = read_json(CONTEXT / "eval/acceptance_cases.json")
         by_id = {c["id"]: c for c in self.checklist["criteria"]}

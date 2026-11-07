@@ -104,6 +104,9 @@ def provider_schema(checklist):
             out.update(subset(value["allOf"][0]))
         return out
     schema = subset(schema)
+    # The configuration schema version (e.g. 1.0) is not the active checklist
+    # version (e.g. 1 or 2). Bind the latter in generation as well as validation.
+    schema["properties"]["checklist_version"]["enum"] = [checklist["version"]]
     schema["$defs"]["criterion"]["properties"]["criterion_id"]["enum"] = [c["id"] for c in checklist["criteria"]]
     return schema
 

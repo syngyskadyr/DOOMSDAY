@@ -240,7 +240,15 @@ production-оценщиком, гипотезы из него не участв�
 той же модели и chat template, что у сервера. Загружается только токенизатор,
 с `local_files_only=True`, `trust_remote_code=False`, без весов модели и GPU.
 При нестандартном серверном template его нужно отразить в локальном каталоге
-токенизатора. Автоматически проверить скрытые серверные настройки невозможно;
+токенизатора. Дополнительные переменные шаблона передаются JSON-объектом
+`--chat-template-kwargs '{"enable_thinking":false}'` (пример для non-thinking
+Qwen). Флаг требует `--tokenizer`, сохраняет в том числе значение `false` и
+не разрешает менять служебные параметры токенизации, обрезания или шаблон.
+Эти переменные попадают в preflight и manifest: изменение thinking блокирует
+resume даже при одинаковом числе токенов. Без флага сохраняются прежние
+defaults токенизатора и совместимость manifest существующих прогонов.
+Флаг не меняет HTTP-запросы или настройки inference: те же переменные должны
+быть установлены на сервере. Автоматически проверить скрытые серверные настройки невозможно;
 после smoke сверяйте `usage.input_tokens` с preflight. Несовпадение требует
 проверки template/режима thinking до массового запуска.
 Основание: [Hugging Face chat templates](https://huggingface.co/docs/transformers/chat_templating)
@@ -284,6 +292,9 @@ run_dir="artifacts/cqa/dev-qwen-$(date -u +%Y%m%dT%H%M%SZ)"
 batch_args=(--input codex_context/data/dev.json --expected-count 65
   --run-dir "$run_dir" --tokenizer "$QWEN_TOKENIZER_DIR"
   --context-window "$QWEN_CONTEXT_WINDOW" --max-output-tokens "$QWEN_MAX_OUTPUT_TOKENS")
+
+# Для non-thinking сервера из docs/BREV_SETUP.md добавить к тем же аргументам:
+batch_args+=(--chat-template-kwargs '{"enable_thinking":false}')
 
 # Без API: должен быть ready=true, oversized_ids=[] и missing_settings=[].
 python -m cqa_eval batch "${batch_args[@]}" --preflight --out "${run_dir}-preflight.json"
@@ -370,17 +381,27 @@ HTTP 400/401/403/404/422 останавливают текущий batch, что
 
 ### Формат сдачи организаторам
 
-**Совместимость с экспортёром JSON 1.0 пока не подтверждена.** При проверке
-07.11.2026 его реализации/спецификации нет в текущей ветке, `origin/main`
-(`70bd560`) и `origin/feat/backend` (`2b4c216`). `schema_version: "1.0"`
-в checklist.json — версия конфигурации, не схема итоговой сдачи.
-`batch-collect` выдаёт внутренний `cqa-batch-results-1`, а не выдуманный формат
-организаторов. Decimal остаются строками по существующему ML-контракту;
-backend MLAdapter умеет пересчитать assessment и преобразовать Decimal в JSON numbers.
-Готового импорта пакетных результатов в backend в проверенном коде нет.
-До сдачи нужны схема/экспортёр, явное преобразование его полей и интеграционный
-тест на реальных сохранённых ответах. Не переименовывайте внутренний пакет в
-JSON 1.0 без такой проверки.
+Предоставленное 8 ноября приложение `CQA_Student_Guide_Appendix_Results.pdf`
+задаёт обязательный **JSON 1.0**: `results/dev/results.json` для 65 DEV и
+`results/prod/results.json` для 10 контрольных чатов, включая ошибки.
+Контрольный набор выдаётся за час до стоп-кода; за этот час нужно получить
+данные, выполнить оценку, проверку, commit и push. Локального файла или commit
+без push недостаточно.
+
+Для сдачи предназначена отдельная офлайн-команда `export-results`:
+она сопоставляет 01–08 с кодами `contact`–`critical`, yes/no/na с
+true/false/null и message_id с номерами исходных реплик с 1. Балл повторно
+рассчитывается общим scorer и записывается JSON number. Ошибки сохраняются
+с исходным ID, `status="error"`, пустым `criteria`, `score=null` и причиной.
+Команда не вызывает модель и не публикует файлы в Git.
+
+`batch-collect` сохраняет прежний внутренний формат `cqa-batch-results-1`;
+его нельзя переименовывать в официальный файл сдачи. Decimal в ML CLI по-прежнему
+сериализуются строками; это отдельный контракт. Импорта batch-результатов в
+backend нет: результаты интерфейса получаются обычным оцениванием через API.
+`schema_version: "1.0"` в checklist.json относится к конфигурации, а не к сдаче.
+
+Поля, команды DEV/PROD и порядок проверки — [docs/SUBMISSION.md](docs/SUBMISSION.md).
 
 Все результаты и журналы — приватные локальные данные внутри игнорируемого
 `artifacts/`; исходный PROD храните в игнорируемом `codex_context/data/`.
