@@ -1,0 +1,27 @@
+{
+  "version": "1",
+  "checklist_version": "1",
+  "purpose": "Independent blind human annotation; selection topics are not answer labels",
+  "data_path": "codex_context/data/dev.json",
+  "dev_sha256": "7311f19010932804b1fd3391d50a311dd8699a04e8441e756ae94a8b51c0b455",
+  "prompt_version": "v2-applicability-and-closing",
+  "selection_policy": "5 RU, 5 KZ, 5 EN; 12 development and 3 reserved. Group translated/related scenarios together. Reserve contains 2 scenario families, not 3 independent scenarios. First-client topic summaries were inspected for selection; reserved full transcripts and model outputs were not used to tune v2.",
+  "review_policy": "Annotators receive transcripts, checklist and a blank form, without predictions, starter hypotheses or this topic manifest. Resolve disagreements with a second reviewer before human_reviewed. All proposed coverage must be confirmed during annotation.",
+  "cases": [
+    {"conversation_id": "p1-ru-001", "language": "RU", "split": "development", "group": "pricing_navigation", "selection_focus": ["sufficient_context", "closing"], "in_original_starter_set": true},
+    {"conversation_id": "p1-kz-001", "language": "KZ", "split": "development", "group": "pricing_navigation", "selection_focus": ["sufficient_context", "closing"], "in_original_starter_set": false},
+    {"conversation_id": "p1-en-003", "language": "EN", "split": "development", "group": "pricing_navigation", "selection_focus": ["sufficient_context", "closing"], "in_original_starter_set": false},
+    {"conversation_id": "p1-ru-006", "language": "RU", "split": "development", "group": "deposit_followup", "selection_focus": ["identity_timing", "clarification", "closing"], "in_original_starter_set": true},
+    {"conversation_id": "p1-kz-003", "language": "KZ", "split": "development", "group": "deposit_followup", "selection_focus": ["identity_timing", "multiple_questions", "closing"], "in_original_starter_set": true},
+    {"conversation_id": "p1-en-006", "language": "EN", "split": "development", "group": "deposit_followup", "selection_focus": ["identity_timing", "multiple_questions", "clarification"], "in_original_starter_set": false},
+    {"conversation_id": "p1-ru-023", "language": "RU", "split": "development", "group": "private_bond_advice", "selection_focus": ["gross_violation", "closing"], "in_original_starter_set": true},
+    {"conversation_id": "p1-kz-013", "language": "KZ", "split": "development", "group": "private_bond_advice", "selection_focus": ["gross_violation", "closing"], "in_original_starter_set": false},
+    {"conversation_id": "p1-en-013", "language": "EN", "split": "development", "group": "private_bond_advice", "selection_focus": ["gross_violation", "closing"], "in_original_starter_set": false},
+    {"conversation_id": "p1-ru-025", "language": "RU", "split": "development", "group": "interrupted_before_request", "selection_focus": ["interruption", "na_applicability"], "in_original_starter_set": false},
+    {"conversation_id": "p1-kz-009", "language": "KZ", "split": "development", "group": "instrument_disambiguation", "selection_focus": ["multiple_questions", "sufficient_context", "closing"], "in_original_starter_set": false},
+    {"conversation_id": "p1-en-014", "language": "EN", "split": "development", "group": "withdrawal_identity", "selection_focus": ["identity_timing", "missing_answer", "closing"], "in_original_starter_set": true},
+    {"conversation_id": "p1-ru-016", "language": "RU", "split": "reserved", "group": "login_diagnosis", "selection_focus": ["clarification_transfer"], "in_original_starter_set": false},
+    {"conversation_id": "p1-kz-014", "language": "KZ", "split": "reserved", "group": "tax_form_language", "selection_focus": ["na_transfer", "closing_transfer"], "in_original_starter_set": false},
+    {"conversation_id": "p1-en-011", "language": "EN", "split": "reserved", "group": "tax_form_language", "selection_focus": ["na_transfer", "closing_transfer"], "in_original_starter_set": false}
+  ]
+}

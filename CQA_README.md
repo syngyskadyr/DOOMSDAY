@@ -1,5 +1,9 @@
 # ИИ-оценщик DOOMSDAY
 
+Актуальная подготовка prompt v2 и независимой разметки 15 диалогов описана в
+[PROMPT_CALIBRATION.md](codex_context/eval/PROMPT_CALIBRATION.md).
+Формула баллов сохранена; улучшение точности новой инструкции ещё не измерено.
+
 Python 3.11+, пакет `src/cqa_eval`. Канонические входы — только `codex_context/`.
 Старые `dev.json`, `checklist.json`, `BUSINESS_RULES.md`, `CODEX_PROMPT.md` в корне
 не используются. Материалы комплекта и общий README не изменены.
