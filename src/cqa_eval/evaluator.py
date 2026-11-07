@@ -22,6 +22,10 @@ class EvaluationError(RuntimeError):
         self.metadata = metadata or {}
 
 
+class PersistenceError(RuntimeError):
+    """A journal failure must stop processing, never trigger an API retry."""
+
+
 @dataclass(frozen=True)
 class Settings:
     api_key: str = field(default="", repr=False)
@@ -33,6 +37,7 @@ class Settings:
     max_attempts: int = 2
     input_price: Decimal | None = None
     output_price: Decimal | None = None
+    max_output_tokens: int | None = None
 
     @classmethod
     def from_env(cls):
@@ -67,6 +72,8 @@ class Settings:
             raise InputError("LLM_STRUCTURED_OUTPUT must be json_schema or json_object")
         if not 0 < self.timeout <= 300 or not 1 <= self.max_attempts <= 2:
             raise InputError("Timeout must be 0..300 seconds; attempts must be 1 or 2")
+        if self.max_output_tokens is not None and (type(self.max_output_tokens) is not int or self.max_output_tokens <= 0):
+            raise InputError("max_output_tokens must be a positive integer")
         for value in (self.input_price, self.output_price):
             if value is not None and (not value.is_finite() or value < 0):
                 raise InputError("Token prices must be finite and nonnegative")
@@ -123,13 +130,19 @@ def request_body(prepared, settings):
     if settings.api_style == "chat_completions":
         chat_format = ({"type": "json_schema", "json_schema": {k: v for k, v in fmt.items() if k != "type"}}
                        if settings.structured_output == "json_schema" else fmt)
-        return {"model": settings.model,
+        body = {"model": settings.model,
                 "messages": [{"role": "system", "content": prepared["system"]},
                              {"role": "user", "content": prepared["user"]}],
                 "response_format": chat_format}
-    return {"model": settings.model, "instructions": prepared["system"],
+        if settings.max_output_tokens is not None:
+            body["max_tokens"] = settings.max_output_tokens
+        return body
+    body = {"model": settings.model, "instructions": prepared["system"],
             "input": [{"role": "user", "content": prepared["user"]}],
             "text": {"format": fmt}}
+    if settings.max_output_tokens is not None:
+        body["max_output_tokens"] = settings.max_output_tokens
+    return body
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -191,13 +204,19 @@ def _cost(usage, settings):
             + Decimal(usage["output_tokens"]) * settings.output_price) / Decimal(1000000)
 
 
-def evaluate_dialogue(dialogue, checklist, *, settings=None):
+def evaluate_dialogue(dialogue, checklist, *, settings=None, on_event=None):
     """Return backend wrapper; errors raise EvaluationError with attempt metadata.
 
     No labels, fixtures, data files, or predictions are read by this function.
     """
     settings = settings or Settings.from_env()
     settings.validate()
+    def emit(event, value):
+        if on_event is not None:
+            try:
+                on_event(event, value)
+            except OSError:
+                raise PersistenceError("Cannot persist API journal; processing stopped") from None
     dialogue = normalize_dialogue(dialogue)
     prepared = prepare_request(dialogue, checklist)
     body = request_body(prepared, settings)
@@ -210,7 +229,8 @@ def evaluate_dialogue(dialogue, checklist, *, settings=None):
                 "response_schema_hash": fingerprint(response_schema()),
                 "prompt_hash": fingerprint(prepared), "request_hash": fingerprint(body),
                 "api_style": settings.api_style, "requested_model": settings.model,
-                "generation_settings": {"structured_output": settings.structured_output},
+                "generation_settings": {"structured_output": settings.structured_output,
+                                        "max_output_tokens": settings.max_output_tokens},
                 "cache_hit": False, "attempts": [], "cost_usd": None}
     started = time.monotonic()
 
@@ -228,9 +248,12 @@ def evaluate_dialogue(dialogue, checklist, *, settings=None):
         attempt = {"attempt": attempt_number, "requested_model": settings.model, "model": None,
                    "usage": None, "cost_usd": None, "error": None}
         metadata["attempts"].append(attempt)
+        emit("attempt_started", {"attempt": attempt_number})
         retry = False
         try:
             response = _http_post(url, body, settings)
+            # Persist the returned JSON before parsing/semantic validation.
+            emit("response_received", {"attempt": attempt_number, "response": response})
             if not isinstance(response, dict):
                 raise InputError("Invalid API envelope")
             attempt["model"] = response.get("model") if isinstance(response.get("model"), str) else None
@@ -248,6 +271,7 @@ def evaluate_dialogue(dialogue, checklist, *, settings=None):
             # No paid format-repair retry. Save every actual attempt.
         finally:
             attempt["duration_seconds"] = time.monotonic() - attempt_start
+            emit("attempt_finished", attempt)
         if attempt["error"] is None:
             finish()
             calculation = calculate_score(checklist, assessment)

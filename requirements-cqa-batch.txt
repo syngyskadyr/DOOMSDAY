@@ -1,0 +1,3 @@
+-r requirements-cqa.txt
+# CPU-only local token counting; model weights are never loaded by the CLI.
+transformers>=4.51,<6
