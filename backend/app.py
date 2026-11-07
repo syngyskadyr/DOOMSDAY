@@ -12,8 +12,10 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 from starlette.staticfiles import StaticFiles
 
+from .environment import load_environment
 from .importing import InvalidJSON, ImportConflictError, ImportValidationError, parse_json
 from .ml_adapter import AdapterUnavailable, AdapterValidationError, MLAdapter
+from . import openapi
 from .service import APIError, Service, invalid
 from .store import Store
 
@@ -21,6 +23,10 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DEV = ROOT / "codex_context/data/dev.json"
 DEFAULT_CHECKLIST = ROOT / "codex_context/checklist.json"
 logger = logging.getLogger("doomsday.backend")
+
+
+class FrontendDirectoryError(ValueError):
+    """Safe startup failure for an explicitly requested public directory."""
 
 
 def error_response(status, code, message, details=None):
@@ -55,10 +61,14 @@ def revision_field(body):
     return value
 
 
-def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHECKLIST, adapter=None, frontend_path=None):
+def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHECKLIST, adapter=None, frontend_path=None,
+               env_file=None, load_env_file=True):
+    load_environment(env_file, enabled=load_env_file)
     adapter = adapter if adapter is not None else MLAdapter()
     db_path = db_path if db_path is not None else os.environ.get("DOOMSDAY_DB_PATH", ROOT / "backend/data/doomsday.sqlite3")
     public_path = Path(frontend_path) if frontend_path is not None else ROOT / "frontend/public"
+    if frontend_path is not None and not public_path.is_dir():
+        raise FrontendDirectoryError("Указанный публичный каталог frontend не найден или не является каталогом.")
 
     @asynccontextmanager
     async def lifespan(app):
@@ -131,7 +141,7 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
         return {"status": "ok", "api_version": "1", "evaluator_status": "ready" if ready else "unavailable",
                 "evaluator_message": message}
 
-    @app.post("/api/conversations/import")
+    @app.post("/api/conversations/import", openapi_extra=openapi.IMPORT)
     async def import_conversations(request: Request):
         return app.state.service.import_conversations(await json_body(request))
 
@@ -155,12 +165,12 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
     def checklist(version: str):
         return app.state.service.checklist(version)
 
-    @app.post("/api/checklists", status_code=201)
+    @app.post("/api/checklists", status_code=201, openapi_extra=openapi.CHECKLIST)
     async def save_checklist(request: Request):
         body = await object_body(request, ("base_version", "checklist"))
         return app.state.service.save_checklist(string_field(body, "base_version"), body["checklist"])
 
-    @app.post("/api/conversations/{conversation_id:path}/evaluations", status_code=202)
+    @app.post("/api/conversations/{conversation_id:path}/evaluations", status_code=202, openapi_extra=openapi.EVALUATION)
     async def evaluate(conversation_id: str, request: Request):
         body = await object_body(request, ("checklist_version",))
         document = app.state.service.queue_evaluation(conversation_id, string_field(body, "checklist_version"))
@@ -179,13 +189,13 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
     def appeals(status: Literal["open", "resolved", "all"] = "open"):
         return app.state.service.appeals(status)
 
-    @app.post("/api/evaluations/{evaluation_id}/appeals", status_code=201)
+    @app.post("/api/evaluations/{evaluation_id}/appeals", status_code=201, openapi_extra=openapi.APPEAL)
     async def create_appeal(evaluation_id: str, request: Request):
         body = await object_body(request, ("criterion_id", "comment", "expected_revision"))
         return app.state.service.create_appeal(evaluation_id, string_field(body, "criterion_id"),
                                                string_field(body, "comment"), revision_field(body))
 
-    @app.post("/api/appeals/{appeal_id}/resolve")
+    @app.post("/api/appeals/{appeal_id}/resolve", openapi_extra=openapi.RESOLUTION)
     async def resolve_appeal(appeal_id: str, request: Request):
         body = await object_body(request, ("decision", "reason", "replacement", "expected_revision"))
         decision = string_field(body, "decision")
