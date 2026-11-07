@@ -1,10 +1,14 @@
 import { api } from "./api.js";
+import { appealsView } from "./appeals.js";
+import { checklistView } from "./checklists.js";
 import { dialogueView } from "./dialogue.js";
 import { analyticsView, registryView } from "./overview.js";
 import { badge, button, emptyState, errorNotice, h, icon, linkButton, loading, notice } from "./ui.js";
 
 const routes = {
   dialogues: { label: "Диалоги", glyph: "conversations", view: registryView },
+  checklists: { label: "Чек-листы", glyph: "checklist", view: checklistView },
+  appeals: { label: "Апелляции", glyph: "appeals", view: appealsView },
   analytics: { label: "Аналитика", glyph: "analytics", view: analyticsView },
 };
 
@@ -84,7 +88,7 @@ async function render({ navigate = false } = {}) {
   });
   const onMount = [];
   const ctx = {
-    ...route, signal, health,
+    ...route, signal, health, announce,
     onMount: (callback) => onMount.push(callback),
     refresh: (message) => { announce(message); render(); },
   };

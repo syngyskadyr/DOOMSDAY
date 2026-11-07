@@ -1,8 +1,12 @@
 import { api } from "./api.js";
+import { requestAppeal } from "./appeal-forms.js";
+import { appealHref } from "./appeal-model.js";
+import { checklistHref } from "./checklists.js";
 import {
   answerLabel, dateLabel, dialogueHref, isPending, languageLabel, messagesInRange, numberLabel,
-  roleLabel, scoreLabel, statuses, violationLabel,
+  roleLabel, scoreLabel, statuses,
 } from "./model.js";
+import { appealTimeline, assessmentExplanation } from "./result-notes.js";
 import {
   badge, button, channelTag, emptyState, errorNotice, field, flagBadge, h, icon, intro,
   linkButton, notice, panelHeading, select, statusBadge,
@@ -103,22 +107,6 @@ function transcriptView(dialogue, ctx) {
   };
 }
 
-export function assessmentExplanation(row, jump) {
-  const evidence = (ids) => ids.length > 0 && h("div", { class: "evidence-links" },
-    ids.map((id) => button(id, { kind: "evidence", glyph: "quote", onclick: () => jump(id) })));
-  const range = row.checked_range;
-  return h("div", { class: "assessment-explanation" },
-    h("p", { class: "reason" }, row.reason),
-    row.na_reason && h("p", { class: "reason detail" }, h("strong", {}, "Почему N/A "), row.na_reason),
-    row.uncertainty && h("p", { class: "reason detail" }, h("strong", {}, "Требует внимания "), row.uncertainty),
-    evidence(row.evidence_message_ids),
-    range && button("Участок " + range.start_message_id + " — " + range.end_message_id, {
-      kind: "evidence", glyph: "layers", onclick: () => jump(range.start_message_id, range.end_message_id),
-    }),
-    row.violations.length > 0 && h("ul", { class: "violation-list" }, row.violations.map((violation) =>
-      h("li", {}, h("strong", {}, violationLabel(violation.type)), h("p", {}, violation.reason), evidence(violation.evidence_message_ids)))));
-}
-
 function resultBadge(row, criterion) {
   let tone = "success";
   if (row.answer == null) tone = "warning";
@@ -129,7 +117,7 @@ function resultBadge(row, criterion) {
   return badge(answerLabel(row.answer, criterion), tone);
 }
 
-function criterionCard(criterion, row, original, points, originalPoints, jump) {
+function criterionCard(criterion, row, original, points, originalPoints, jump, action) {
   const weight = points?.base_weight ?? criterion.weight;
   const effective = points?.effective_weight;
   return h("article", { class: "criterion-result" },
@@ -146,10 +134,11 @@ function criterionCard(criterion, row, original, points, originalPoints, jump) {
     original && h("details", { class: "original-result" },
       h("summary", {}, "Исходная оценка · " + answerLabel(original.answer, criterion) +
         (originalPoints?.earned_points != null ? " · баллы " + numberLabel(originalPoints.earned_points) : "")),
-      assessmentExplanation(original, jump)));
+      assessmentExplanation(original, jump)),
+    h("div", { class: "criterion-actions" }, action));
 }
 
-function resultPanel(evaluation, jump) {
+function resultPanel(ctx, evaluation, jump) {
   const { checklist_snapshot: checklist, final, original } = evaluation;
   const rows = new Map(final.assessment.criteria.map((row) => [row.criterion_id, row]));
   const points = new Map(final.calculation.rows.map((row) => [row.criterion_id, row]));
@@ -157,6 +146,11 @@ function resultPanel(evaluation, jump) {
   const originalPoints = new Map(original.calculation.rows.map((row) => [row.criterion_id, row]));
   const sections = new Map(final.calculation.sections.map((row) => [row.section_id, row]));
   const changed = new Set(evaluation.appeals.filter((item) => item.resolution?.decision === "change").map((item) => item.criterion_id));
+  const open = new Map(evaluation.appeals.filter((item) => item.status === "open").map((item) => [item.criterion_id, item.appeal_id]));
+  const appealAction = (criterion, row) => open.has(criterion.id)
+    ? linkButton("Апелляция на рассмотрении", appealHref({ id: open.get(criterion.id), status: "open" }), { kind: "quiet small" })
+    : button("Подать апелляцию", { kind: "quiet small", glyph: "appeals",
+      onclick: () => requestAppeal(ctx, evaluation, criterion, row) });
   return h("section", { class: "panel assessment-panel" },
     panelHeading("Результат оценки", checklist.title + " · версия " + evaluation.checklist_version, statusBadge(evaluation.status)),
     h("div", { class: "assessment-summary" },
@@ -177,8 +171,10 @@ function resultPanel(evaluation, jump) {
             numberLabel(totals.earned_points) + " / " + numberLabel(totals.possible_points) + " баллов")),
         criteria.map((criterion) => criterionCard(criterion, rows.get(criterion.id),
           changed.has(criterion.id) ? originals.get(criterion.id) : null, points.get(criterion.id),
-          originalPoints.get(criterion.id), jump)));
-    })));
+          originalPoints.get(criterion.id), jump, appealAction(criterion, rows.get(criterion.id)))));
+    })),
+    evaluation.appeals.length > 0 && h("section", { class: "appeal-history dialogue-history" },
+      h("h3", {}, "История апелляций"), appealTimeline(evaluation)));
 }
 
 export async function dialogueView(ctx) {
@@ -188,15 +184,18 @@ export async function dialogueView(ctx) {
   ]);
   const selectedEvaluation = query.get("evaluation") || dialogue.latest_evaluation_id;
   let evaluation = selectedEvaluation ? await api.evaluation(selectedEvaluation, signal) : null;
-  if (evaluation?.conversation_id !== id && evaluation) throw new Error("Эта оценка относится к другому диалогу.");
+  if (evaluation && evaluation.conversation_id !== id) throw new Error("Эта оценка относится к другому диалогу.");
   const transcript = transcriptView(dialogue, ctx);
-  const jobPanel = h("div", { class: "view job-panel", "aria-live": "polite" });
+  const jobPanel = h("div", { class: "view job-panel" });
+  const jobStatus = h("p", { class: "sr-only", role: "status" });
   const launchMessages = h("div");
   const version = select(versions.items.map((item) => [item.version, "Версия " + item.version +
     (item.version === versions.current_version ? " · текущая" : "")]), versions.current_version);
   const launch = button("Оценить", { kind: "primary", glyph: "bolt", type: "submit" });
   let submitting = false;
+  let polling = false;
   let pollTimer;
+  let displayedStatus;
 
   function updateLaunch() {
     const active = dialogue.evaluation_history.some((item) => {
@@ -210,23 +209,34 @@ export async function dialogueView(ctx) {
   signal.addEventListener("abort", () => clearTimeout(pollTimer), { once: true });
 
   async function poll() {
-    if (signal.aborted) return;
+    if (signal.aborted || polling) return;
+    polling = true;
     try {
       evaluation = await api.evaluation(selectedEvaluation, signal);
       if (!signal.aborted) showResult();
     } catch (error) {
       if (signal.aborted) return;
+      displayedStatus = undefined;
       jobPanel.replaceChildren(errorNotice(error), button("Проверить статус", { glyph: "refresh", onclick: poll }));
+    } finally {
+      polling = false;
     }
   }
 
   function showResult() {
     updateLaunch();
+    const status = evaluation?.status ?? "not_evaluated";
+    if (status === displayedStatus && isPending(status)) {
+      pollTimer = setTimeout(poll, 1200);
+      return;
+    }
+    displayedStatus = status;
+    if (evaluation) jobStatus.textContent = statuses[status].label;
     if (!evaluation) {
       jobPanel.replaceChildren(h("section", { class: "panel" },
         emptyState("Оценок пока нет", "Выберите версию чек-листа и нажмите «Оценить». Здесь появятся баллы, объяснения и доказательства.", null, "checklist")));
     } else if (isPending(evaluation.status)) {
-      jobPanel.replaceChildren(h("section", { class: "panel job-state", role: "status" },
+      jobPanel.replaceChildren(h("section", { class: "panel job-state" },
         h("span", { class: "spinner" }), h("div", {},
           h("h2", {}, statuses[evaluation.status].label),
           h("p", { class: "muted" }, "Чек-лист версии " + evaluation.checklist_version + ". Статус обновляется автоматически."))));
@@ -236,7 +246,7 @@ export async function dialogueView(ctx) {
         panelHeading("Оценка завершилась ошибкой", "Чек-лист версии " + evaluation.checklist_version),
         errorNotice(evaluation.error || { message: "Оценщик не вернул результат." })));
     } else if (evaluation.final) {
-      jobPanel.replaceChildren(resultPanel(evaluation, transcript.jump));
+      jobPanel.replaceChildren(resultPanel(ctx, evaluation, transcript.jump));
     }
   }
 
@@ -252,13 +262,12 @@ export async function dialogueView(ctx) {
         const job = await api.startEvaluation(id, version.value);
         if (!signal.aborted) location.hash = dialogueHref(id, { evaluation: job.evaluation_id });
       } catch (error) {
+        submitting = false;
         if (!signal.aborted) {
+          updateLaunch();
           launchMessages.replaceChildren(errorNotice(error));
           if (error.status === 409) launchMessages.append(button("Обновить диалог", { glyph: "refresh", onclick: () => ctx.refresh() }));
         }
-      } finally {
-        submitting = false;
-        updateLaunch();
       }
     },
   }, field("Версия чек-листа", version), launch);
@@ -278,9 +287,10 @@ export async function dialogueView(ctx) {
     h("div", { class: "dialogue-grid" }, transcript.view,
       h("div", { class: "view assessment-column" },
         h("section", { class: "panel launch-panel" },
-          panelHeading("Оценивание", "Выберите версию правил для этого диалога"),
+          panelHeading("Оценивание", "Выберите версию правил для этого диалога",
+            linkButton("К чек-листам", checklistHref({ dialogue: id }), { kind: "quiet small", glyph: "checklist" })),
           startForm, health?.evaluator_status === "unavailable" &&
             notice(health.evaluator_message || "Оценщик пока недоступен."),
           launchMessages, dialogue.evaluation_history.length > 0 && field("История оценок", history)),
-        jobPanel)));
+        jobStatus, jobPanel)));
 }

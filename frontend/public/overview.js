@@ -212,9 +212,11 @@ export async function analyticsView(ctx) {
             Math.max(...Object.values(summary.counts))))),
       h("section", { class: "panel analytics-foot" }, panelHeading("Грубые ошибки",
         "Последняя оценка с подтверждённым флагом, независимо от числового балла.",
-        button("Показать диалоги", { glyph: "arrow", onclick: openCritical, disabled: !summary.critical }))),
-      summary.synthetic > 0 && h("p", { class: "muted note" },
+        button("Показать диалоги", { glyph: "arrow", onclick: openCritical, disabled: !summary.critical }))));
+    if (summary.synthetic) {
+      results.append(h("p", { class: "muted note" },
         "В выборке есть тестовые диалоги (" + summary.synthetic + "). Их можно исключить фильтром «Данные»."));
+    }
   }
 
   render();
