@@ -218,3 +218,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CQA: local credentials, datasets and generated outputs.
+.env.*
+!.env.example
+/artifacts/
+/codex_context/data/
+/data/
+/results/
+/runs/
+/audio/
+/dev.json
+/invoke.json
+
+# Obsolete copies from the earlier unpacking; canonical materials are in codex_context/.
+/BUSINESS_RULES.md
+/CODEX_PROMPT.md
+/checklist.json

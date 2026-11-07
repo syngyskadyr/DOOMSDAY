@@ -1,0 +1,119 @@
+{
+  "conversation_id": "synthetic-format-001",
+  "checklist_version": "1",
+  "criteria": [
+    {
+      "criterion_id": "01",
+      "status": "evaluated",
+      "answer": "yes",
+      "reason": "В первом ответе есть приветствие и представление на языке клиента.",
+      "evidence_message_ids": [
+        "m002"
+      ],
+      "checked_range": null,
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "02",
+      "status": "evaluated",
+      "answer": "na",
+      "reason": "Запрос сразу содержит достаточно сведений для ответа.",
+      "evidence_message_ids": [
+        "m001"
+      ],
+      "checked_range": null,
+      "na_reason": "Данных для ответа хватало с самого начала.",
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "03",
+      "status": "evaluated",
+      "answer": "na",
+      "reason": "Дана общая инструкция по навигации без защищённого действия.",
+      "evidence_message_ids": [
+        "m001",
+        "m002"
+      ],
+      "checked_range": null,
+      "na_reason": "Запрос не требовал идентификации.",
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "04",
+      "status": "evaluated",
+      "answer": 20,
+      "reason": "Дан конкретный путь, клиент подтвердил, что нашёл раздел.",
+      "evidence_message_ids": [
+        "m002",
+        "m003"
+      ],
+      "checked_range": null,
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "05",
+      "status": "evaluated",
+      "answer": "yes",
+      "reason": "Оператор общается вежливо; недовольства клиента нет.",
+      "evidence_message_ids": [
+        "m002",
+        "m004"
+      ],
+      "checked_range": null,
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "06",
+      "status": "evaluated",
+      "answer": 10,
+      "reason": "Ответ понятный и последовательный, явного ожидания нет.",
+      "evidence_message_ids": [
+        "m002",
+        "m004"
+      ],
+      "checked_range": null,
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "07",
+      "status": "evaluated",
+      "answer": "yes",
+      "reason": "Есть итог, предложение помощи и прощание.",
+      "evidence_message_ids": [
+        "m004"
+      ],
+      "checked_range": null,
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    },
+    {
+      "criterion_id": "08",
+      "status": "evaluated",
+      "answer": "no",
+      "reason": "В доступном разговоре не выявлено ни одного из трёх типов грубых нарушений.",
+      "evidence_message_ids": [
+        "m002",
+        "m004"
+      ],
+      "checked_range": {
+        "start_message_id": "m001",
+        "end_message_id": "m004"
+      },
+      "na_reason": null,
+      "uncertainty": null,
+      "violations": []
+    }
+  ]
+}
+

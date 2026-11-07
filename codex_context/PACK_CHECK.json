@@ -1,0 +1,62 @@
+{
+  "pack_version": "1.0",
+  "verified_date": "2026-11-07",
+  "dev_records": 65,
+  "dev_sha256": "7311f19010932804b1fd3391d50a311dd8699a04e8441e756ae94a8b51c0b455",
+  "raw_dev_unchanged": true,
+  "rubric_checked": true,
+  "json_schema_valid": true,
+  "synthetic_response_valid": true,
+  "schema_negative_cases_checked": 4,
+  "starter_evidence_ids_checked": 26,
+  "reviewed_human_labels": 0,
+  "arithmetic_fixtures": [
+    {
+      "id": "all_pass",
+      "passed": true,
+      "total_score": "100.00"
+    },
+    {
+      "id": "all_fail",
+      "passed": true,
+      "total_score": "0.00"
+    },
+    {
+      "id": "partial_06",
+      "passed": true,
+      "total_score": "95.50"
+    },
+    {
+      "id": "two_na_partial_scales",
+      "passed": true,
+      "total_score": "85.38"
+    },
+    {
+      "id": "two_na_missing_completion",
+      "passed": true,
+      "total_score": "92.31"
+    },
+    {
+      "id": "gross_flag_does_not_zero_score",
+      "passed": true,
+      "total_score": "100.00"
+    },
+    {
+      "id": "zero_applicable_weight",
+      "passed": true,
+      "total_score": null
+    },
+    {
+      "id": "changed_weight_06",
+      "passed": true,
+      "total_score": "92.17"
+    },
+    {
+      "id": "added_binary_criterion",
+      "passed": true,
+      "total_score": "90.91"
+    }
+  ],
+  "live_model_calls_performed": 0,
+  "note": "Validation of preparation materials only. No application implementation or model accuracy claim."
+}

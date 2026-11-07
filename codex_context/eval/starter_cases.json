@@ -1,0 +1,159 @@
+{
+  "schema_version": "1",
+  "checklist_version": "1",
+  "source_filename": "invoke.json",
+  "annotation_status": "draft",
+  "purpose": "Пять стартовых диалогов для ручной проверки понимания правил и работы evidence.",
+  "interpretation_policy": {
+    "status": "Предварительные интерпретации для обсуждения людьми; официального GT здесь нет.",
+    "official_ground_truth": false,
+    "use_for_quality_metrics": false,
+    "use_as_model_prompt_examples": false,
+    "use_as_production_lookup": false,
+    "use_as_cached_prediction": false,
+    "note": "Не возвращать эти гипотезы по conversation_id и не подмешивать их в запрос оценщика. Сначала независимо проверить исходные сообщения по чек-листу."
+  },
+  "message_id_policy": {
+    "source": "invoke.json: data.records[].transcript",
+    "formula": "m + (source_index + 1), padded to at least 3 digits; source_index starts at 0",
+    "examples": {
+      "transcript[0]": "m001",
+      "transcript[9]": "m010",
+      "transcript[11]": "m012"
+    },
+    "preserve": "Assign IDs before filtering; preserve original order and timestamp. Include client, operator, bot and system.",
+    "evidence": "Resolve message IDs within the same conversation. A bot greeting is context, not an operator greeting; a system identity confirmation can be relevant evidence."
+  },
+  "cases": [
+    {
+      "conversation_id": "p1-ru-001",
+      "language": "RU",
+      "split": "debug",
+      "purpose": "Короткая навигационная консультация: N/A при достаточном контексте и проверка полного условия завершения.",
+      "expected_focus": [
+        {
+          "criterion_id": "02",
+          "provisional_answer": "na",
+          "evidence_message_ids": [
+            "m001",
+            "m005",
+            "m010"
+          ],
+          "reason": "До ответа оператора уже известны вопрос и работа с компьютера без скачивания отчёта; дополнительное уточнение, предположительно, не требовалось."
+        },
+        {
+          "criterion_id": "03",
+          "provisional_answer": "na",
+          "evidence_message_ids": [
+            "m010"
+          ],
+          "reason": "Оператор объясняет путь в интерфейсе; защищённое действие и раскрытие персональных сведений о счёте в этой реплике не наблюдаются."
+        },
+        {
+          "criterion_id": "07",
+          "provisional_answer": "no",
+          "evidence_message_ids": [
+            "m010",
+            "m011",
+            "m012"
+          ],
+          "reason": "В последней реплике есть вежливое прощание, но отдельного итога либо предложения дальнейшей помощи не видно. При ручной проверке обсудить буквальное условие критерия."
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-006",
+      "language": "RU",
+      "split": "debug",
+      "purpose": "Подтверждение идентификации системным сообщением и проверка порядка событий.",
+      "expected_focus": [
+        {
+          "criterion_id": "03",
+          "provisional_answer": "yes",
+          "evidence_message_ids": [
+            "m010",
+            "m012",
+            "m013"
+          ],
+          "reason": "После требования идентификации в m010 система подтверждает личность в m012; последующие действия оператора находятся в m013. Согласие клиента само по себе не заменяет подтверждение."
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-ru-023",
+      "language": "RU",
+      "split": "debug",
+      "purpose": "Грубый флаг за предложение частной платной услуги; отказ клиента не отменяет событие.",
+      "expected_focus": [
+        {
+          "criterion_id": "08",
+          "provisional_answer": "yes",
+          "evidence_message_ids": [
+            "m012",
+            "m013"
+          ],
+          "reason": "В m012 оператор предлагает частную платную консультацию вне компании. По чек-листу достаточно самого предложения, даже если в m013 клиент отказывается. Флаг не обнуляет балльный итог."
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-kz-003",
+      "language": "KZ",
+      "split": "debug",
+      "purpose": "Казахский диалог с подтверждённой идентификацией и двумя запросами: перевод и отчёт.",
+      "expected_focus": [
+        {
+          "criterion_id": "03",
+          "provisional_answer": "yes",
+          "evidence_message_ids": [
+            "m011",
+            "m013",
+            "m014"
+          ],
+          "reason": "Требование проверки предшествует системному подтверждению личности в m013 и дальнейшей обработке вопроса в m014."
+        },
+        {
+          "criterion_id": "04",
+          "provisional_answer": null,
+          "evidence_message_ids": [
+            "m014",
+            "m022",
+            "m024",
+            "m025",
+            "m026"
+          ],
+          "reason": "Вручную проверить оба запроса и предложенный следующий шаг по переводу. Факт ожидания проверки перевода сам по себе не означает нулевую консультацию. Точную ступень здесь заранее не назначаем."
+        }
+      ]
+    },
+    {
+      "conversation_id": "p1-en-014",
+      "language": "EN",
+      "split": "debug",
+      "purpose": "Неподтверждённая идентификация перед обсуждением счёта и пропущенный вопрос о дальнейшей связи.",
+      "expected_focus": [
+        {
+          "criterion_id": "03",
+          "provisional_answer": "no",
+          "evidence_message_ids": [
+            "m011",
+            "m012",
+            "m013"
+          ],
+          "reason": "Оператор обсуждает состояние счёта; клиент прямо указывает, что проверку не проходил, а оператор предлагает её пропустить. Если проверка требовалась и не подтверждена, чек-лист требует no, а не na."
+        },
+        {
+          "criterion_id": "04",
+          "provisional_answer": null,
+          "evidence_message_ids": [
+            "m013",
+            "m014",
+            "m015"
+          ],
+          "reason": "Вопрос клиента о канале обратной связи остаётся без ответа. Оценить значимость пропуска и выбрать допустимую ступень вручную; окончательный балл не задан."
+        }
+      ]
+    }
+  ],
+  "data_path": "data/dev.json"
+}

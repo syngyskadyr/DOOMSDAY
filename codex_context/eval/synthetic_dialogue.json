@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "conversation_id": "synthetic-format-001",
+  "channel": "agent chat",
+  "language": "RU",
+  "audio_url": null,
+  "transcript": [
+    {
+      "timestamp": "00:00",
+      "speaker": "client",
+      "text": "Здравствуйте, где найти раздел помощи?"
+    },
+    {
+      "timestamp": "00:10",
+      "speaker": "operator",
+      "text": "Здравствуйте! Меня зовут Алексей. Откройте «Помощь» в меню приложения."
+    },
+    {
+      "timestamp": "00:20",
+      "speaker": "client",
+      "text": "Нашёл, спасибо."
+    },
+    {
+      "timestamp": "00:30",
+      "speaker": "operator",
+      "text": "Итак, раздел помощи найден. Если появятся ещё вопросы, обращайтесь. До свидания!"
+    }
+  ]
+}
+

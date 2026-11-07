@@ -1,0 +1,666 @@
+{
+  "format": "minimal_calculation_fixture",
+  "format_version": "1",
+  "synthetic": true,
+  "purpose": "Изолированные арифметические входы и выходы. Здесь нет транскриптов, conversation_id или оценок реальных диалогов.",
+  "rule_source": {
+    "filename": "CQA_Chat_Quality_Checklist 1.pdf",
+    "pages": [
+      1,
+      2
+    ]
+  },
+  "format_notes": [
+    "Each input.checklist_ref resolves to a complete configuration in this file's checklists object.",
+    "The criteria are a minimal projection of the shared checklist contract, sufficient for arithmetic only; semantic instructions are intentionally absent.",
+    "All answers must match the selected configuration's allowed_answers, with exactly one answer per criterion.",
+    "na excludes that criterion's weight and points. It is valid only when na_allowed=true; these fixtures do not test semantic applicability.",
+    "kind=flag is excluded from all weighted calculations, even when its answer is yes; its weight is null.",
+    "For binary: ratio(yes)=1 and ratio(no)=0. For scale: ratio=answer/scale_max; the answer must be one of the listed discrete values.",
+    "Sum applicable weights and sum(weight*ratio) over non-flag, non-na criteria. If the weight sum is zero, total_score=null; otherwise total_score=100*weighted_points_before_normalization/applicable_weight.",
+    "Round the final total only. Zero weights are allowed in the explicitly synthetic configuration used to exercise the denominator-zero case.",
+    "gross_error is true exactly when the answer to the configured gross-error flag 08 is yes. This output does not impose a score penalty.",
+    "A total_score JSON number such as 95.5 represents the rounded value 95.50; numeric trailing zeros are not significant."
+  ],
+  "rounding": {
+    "decimal_places": 2,
+    "mode": "ROUND_HALF_UP",
+    "status": "implementation_choice_for_exact_ties",
+    "note": "PDF requires rounding the final result to two decimals but does not specify the exact-half tie rule. Use Decimal and this explicit convention for these fixtures."
+  },
+  "checklists": {
+    "base": {
+      "version": "1",
+      "synthetic": true,
+      "criteria": [
+        {
+          "id": "01",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "02",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "03",
+          "kind": "binary",
+          "weight": 20,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "04",
+          "kind": "scale",
+          "weight": 20,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": 20
+        },
+        {
+          "id": "05",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "06",
+          "kind": "scale",
+          "weight": 15,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "na_allowed": false,
+          "scale_max": 10
+        },
+        {
+          "id": "07",
+          "kind": "binary",
+          "weight": 5,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "08",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        }
+      ]
+    },
+    "all_weights_zero": {
+      "version": "1",
+      "synthetic": true,
+      "criteria": [
+        {
+          "id": "01",
+          "kind": "binary",
+          "weight": 0,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "02",
+          "kind": "binary",
+          "weight": 0,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "03",
+          "kind": "binary",
+          "weight": 0,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "04",
+          "kind": "scale",
+          "weight": 0,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": 20
+        },
+        {
+          "id": "05",
+          "kind": "binary",
+          "weight": 0,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "06",
+          "kind": "scale",
+          "weight": 0,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "na_allowed": false,
+          "scale_max": 10
+        },
+        {
+          "id": "07",
+          "kind": "binary",
+          "weight": 0,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "08",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        }
+      ]
+    },
+    "reweighted_06": {
+      "version": "1",
+      "synthetic": true,
+      "criteria": [
+        {
+          "id": "01",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "02",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "03",
+          "kind": "binary",
+          "weight": 20,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "04",
+          "kind": "scale",
+          "weight": 20,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": 20
+        },
+        {
+          "id": "05",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "06",
+          "kind": "scale",
+          "weight": 30,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "na_allowed": false,
+          "scale_max": 10
+        },
+        {
+          "id": "07",
+          "kind": "binary",
+          "weight": 5,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "08",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        }
+      ]
+    },
+    "added_09": {
+      "version": "1",
+      "synthetic": true,
+      "criteria": [
+        {
+          "id": "01",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "02",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "03",
+          "kind": "binary",
+          "weight": 20,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "04",
+          "kind": "scale",
+          "weight": 20,
+          "allowed_answers": [
+            0,
+            5,
+            10,
+            15,
+            20,
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": 20
+        },
+        {
+          "id": "05",
+          "kind": "binary",
+          "weight": 15,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "06",
+          "kind": "scale",
+          "weight": 15,
+          "allowed_answers": [
+            0,
+            4,
+            7,
+            10
+          ],
+          "na_allowed": false,
+          "scale_max": 10
+        },
+        {
+          "id": "07",
+          "kind": "binary",
+          "weight": 5,
+          "allowed_answers": [
+            "yes",
+            "no",
+            "na"
+          ],
+          "na_allowed": true,
+          "scale_max": null
+        },
+        {
+          "id": "08",
+          "kind": "flag",
+          "weight": null,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        },
+        {
+          "id": "09",
+          "kind": "binary",
+          "weight": 10,
+          "allowed_answers": [
+            "yes",
+            "no"
+          ],
+          "na_allowed": false,
+          "scale_max": null
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "all_pass",
+      "purpose": "Все балльные критерии на максимуме.",
+      "input": {
+        "checklist_ref": "base",
+        "answers": {
+          "01": "yes",
+          "02": "yes",
+          "03": "yes",
+          "04": 20,
+          "05": "yes",
+          "06": 10,
+          "07": "yes",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": 100,
+        "applicable_weight": 100,
+        "weighted_points_before_normalization": 100,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "all_fail",
+      "purpose": "Все балльные критерии дают ноль; флаг не обнаружен.",
+      "input": {
+        "checklist_ref": "base",
+        "answers": {
+          "01": "no",
+          "02": "no",
+          "03": "no",
+          "04": 0,
+          "05": "no",
+          "06": 0,
+          "07": "no",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": 0,
+        "applicable_weight": 100,
+        "weighted_points_before_normalization": 0,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "partial_06",
+      "purpose": "06=7 из 10 при весе 15 даёт 10.5 балла; остальные критерии на максимуме.",
+      "input": {
+        "checklist_ref": "base",
+        "answers": {
+          "01": "yes",
+          "02": "yes",
+          "03": "yes",
+          "04": 20,
+          "05": "yes",
+          "06": 7,
+          "07": "yes",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": 95.5,
+        "applicable_weight": 100,
+        "weighted_points_before_normalization": 95.5,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "two_na_partial_scales",
+      "purpose": "Два N/A, частичные 04 и 06; нормирование 55.5/65*100.",
+      "input": {
+        "checklist_ref": "base",
+        "answers": {
+          "01": "yes",
+          "02": "na",
+          "03": "na",
+          "04": 15,
+          "05": "yes",
+          "06": 7,
+          "07": "yes",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": 85.38,
+        "applicable_weight": 65,
+        "weighted_points_before_normalization": 55.5,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "two_na_missing_completion",
+      "purpose": "Синтетический расчёт: 02 и 03 неприменимы, 07=no, остальные балльные критерии на максимуме; 60/65*100.",
+      "input": {
+        "checklist_ref": "base",
+        "answers": {
+          "01": "yes",
+          "02": "na",
+          "03": "na",
+          "04": 20,
+          "05": "yes",
+          "06": 10,
+          "07": "no",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": 92.31,
+        "applicable_weight": 65,
+        "weighted_points_before_normalization": 60,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "gross_flag_does_not_zero_score",
+      "purpose": "Положительный флаг при максимальных балльных оценках сохраняет 100 баллов.",
+      "input": {
+        "checklist_ref": "base",
+        "answers": {
+          "01": "yes",
+          "02": "yes",
+          "03": "yes",
+          "04": 20,
+          "05": "yes",
+          "06": 10,
+          "07": "yes",
+          "08": "yes"
+        }
+      },
+      "expected": {
+        "total_score": 100,
+        "applicable_weight": 100,
+        "weighted_points_before_normalization": 100,
+        "gross_error": true
+      }
+    },
+    {
+      "id": "zero_applicable_weight",
+      "purpose": "В специально синтетической конфигурации веса всех применимых балльных критериев равны нулю; итог не рассчитывается.",
+      "input": {
+        "checklist_ref": "all_weights_zero",
+        "answers": {
+          "01": "yes",
+          "02": "yes",
+          "03": "yes",
+          "04": 20,
+          "05": "yes",
+          "06": 10,
+          "07": "yes",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": null,
+        "applicable_weight": 0,
+        "weighted_points_before_normalization": 0,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "changed_weight_06",
+      "purpose": "Те же ответы, что в partial_06, но вес 06 увеличен до 30: 106/115*100. Проверяет использование текущего конфига.",
+      "input": {
+        "checklist_ref": "reweighted_06",
+        "answers": {
+          "01": "yes",
+          "02": "yes",
+          "03": "yes",
+          "04": 20,
+          "05": "yes",
+          "06": 7,
+          "07": "yes",
+          "08": "no"
+        }
+      },
+      "expected": {
+        "total_score": 92.17,
+        "applicable_weight": 115,
+        "weighted_points_before_normalization": 106,
+        "gross_error": false
+      }
+    },
+    {
+      "id": "added_binary_criterion",
+      "purpose": "Новый бинарный 09 весом 10 с ответом no должен войти в знаменатель; 100/110*100.",
+      "input": {
+        "checklist_ref": "added_09",
+        "answers": {
+          "01": "yes",
+          "02": "yes",
+          "03": "yes",
+          "04": 20,
+          "05": "yes",
+          "06": 10,
+          "07": "yes",
+          "08": "no",
+          "09": "no"
+        }
+      },
+      "expected": {
+        "total_score": 90.91,
+        "applicable_weight": 110,
+        "weighted_points_before_normalization": 100,
+        "gross_error": false
+      }
+    }
+  ]
+}
