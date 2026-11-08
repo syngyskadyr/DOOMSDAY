@@ -280,6 +280,7 @@ input[type=file]::file-selector-button {
 .total-score { font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.14; }
 .result-groups { display: grid; padding: 0 16px 16px; gap: 16px; }
 .result-group { display: grid; gap: 8px; }
+.result-provenance { padding: 0 16px; overflow-wrap: anywhere; }
 .result-group-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 9px; }
 .result-group-head h3 { font-size: 14px; }
 .result-group-head .muted { font-size: 12px; }
@@ -421,7 +422,7 @@ summary { cursor: pointer; }
   .appeal-queue { max-height: 290px; }
 }
 @media (max-width: 650px) {
-  .sidebar nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .sidebar nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
   .nav-link { flex-direction: column; justify-content: center; gap: 3px; min-height: 46px; padding: 4px 2px; font-size: clamp(12px, 3vw, 13px); }
   .crumb-root, .breadcrumbs svg { display: none; }
   .topbar-inner > .actions { width: 100%; justify-content: space-between; }

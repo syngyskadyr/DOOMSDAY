@@ -5,12 +5,33 @@ import {
 } from "./model.js";
 import {
   badge, button, channelTag, emptyState, errorNotice, field, flagBadge, h, icon, intro,
-  panelHeading, openDialog, scoreChip, select, statCard, statusBadge,
+  panelHeading, openDialog, scoreChip, select, statCard, statusBadge, linkButton, notice,
 } from "./ui.js";
 
 const PAGE_SIZE = 12;
 const registry = { filters: emptyFilters(), page: 0 };
 const analyticsFilters = emptyFilters();
+
+export async function dashboardView(ctx) {
+  const items = await allConversations(ctx.signal);
+  const summary = summarize(items);
+  const saved = items.filter(item => ["completed", "needs_review"].includes(latestStatus(item)));
+  return h("div", { class: "view" },
+    intro("Контроль качества диалогов", "Диалоги → оценка → доказательства. Откройте сохранённый результат и проверьте выводы модели по исходным репликам.", {
+      hero: true, actions: linkButton("Открыть диалоги", "#/dialogues", { kind: "primary", glyph: "arrow" }),
+    }),
+    h("div", { class: "stat-grid" },
+      statCard("Всего диалогов", numberLabel(summary.total), "В базе сервера", "conversations", "info"),
+      statCard("Сохранённые оценки", numberLabel(summary.processed), "Доступны без нового запуска модели", "check"),
+      statCard("Средний балл", scoreLabel(summary.average), "С числовым итогом: " + summary.scored, "activity"),
+      statCard("Ошибки оценки", numberLabel(summary.counts.failed), "Причина доступна в карточке", "warning", "danger")),
+    notice("Просмотр и обновление страниц не запускают Qwen. Новая оценка создаётся только кнопкой «Оценить» в карточке диалога.", "info"),
+    h("section", { class: "panel" }, panelHeading("Сохранённые результаты", "Начните с любого диалога ниже",
+      linkButton("Вся аналитика", "#/analytics", { kind: "quiet", glyph: "analytics" })),
+    saved.length ? conversationTable(saved.slice(0, 5)) : emptyState("Сохранённых оценок пока нет",
+      "Диалоги доступны в реестре. Для демонстрации результатов подключите backend с сохранёнными DEV-оценками.",
+      linkButton("К диалогам", "#/dialogues"))));
+}
 
 function filterControls(items, filters, onChange, analytics = false) {
   const showSource = analytics || items.some((item) => item.synthetic);
