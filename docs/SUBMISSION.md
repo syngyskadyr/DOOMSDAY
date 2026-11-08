@@ -45,6 +45,9 @@
 
 ## Экспорт без повторных вызовов модели
 
+Для загрузки локального `.env` команды ниже можно вызывать через
+`backend/.venv/bin/python scripts/cqa.py` вместо `-m cqa_eval`.
+
 Сначала завершить batch и сохранить его локальный run-каталог. Затем из корня:
 
 ```bash
@@ -59,6 +62,31 @@ backend/.venv/bin/python -m cqa_eval export-results \
 `--input codex_context/data/prod.json`, `--expected-count 10`, его собственный
 run-каталог и `--out results/prod/results.json`. Команда не подставляет DEV
 вместо отсутствующего PROD. Существующий файл назначения не перезаписывается.
+
+### Отдельный повтор исторических ошибок DEV
+
+Старый run сохраняется целиком. Новый run содержит ровно исходные ошибочные
+ID в исходном порядке, с теми же данными/моделью/официальным checklist,
+одной свежей попыткой на ID и без автоматических повторов. Изменение инструкции
+фиксируется новым instruction_hash; общий однородный manifest не подделывается.
+
+```bash
+backend/.venv/bin/python scripts/cqa.py export-results \
+  --dataset dev --input codex_context/data/dev.json --expected-count 65 \
+  --run-dir artifacts/brev/approved-smoke-20261108/dev-run-version-bound \
+  --recovery-run-dir artifacts/brev/final-delivery-20261108/recovery \
+  --team-name DOOMSDAY --model-name Qwen/Qwen3-14B-AWQ \
+  --served-model-name doomsday-qwen3-14b-awq --model-mode local \
+  --provenance-out artifacts/brev/final-delivery-20261108/submission/provenance.json \
+  --out artifacts/brev/final-delivery-20261108/submission/results.json
+```
+
+Экспорт требует полное покрытие исходных ошибок, проверяет raw response против
+saved assessment и сохраняет источник каждой записи в приватном audit.
+62 исторических успеха не переоцениваются и не заменяются. Новый неуспех
+остаётся явным error; выбирать удобный ответ из нескольких нельзя. Перед
+заменой опубликованного DEV сохранить прежний файл, проверить новый и только
+затем перенести его в `results/dev/results.json` с отдельным commit.
 
 Экспорт повторно проверяет происхождение сохранённых результатов, чек-лист,
 схему ответов, ссылки и арифметику. Незавершённые записи по умолчанию запрещены;

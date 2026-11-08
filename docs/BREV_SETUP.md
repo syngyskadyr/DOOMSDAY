@@ -1,176 +1,130 @@
-# DOOMSDAY: Qwen на NVIDIA Brev
+# Живой inference на NVIDIA Brev
 
-## Фактически подготовленная конфигурация
+Модель работает на отдельном GPU, backend и frontend — локально. Проверена
+конфигурация Crusoe `l40s-48gb.1x`, L40S 48 GB, fixed 128 GB, Ubuntu/Python3.10,
+драйвер 565.57.01. Используются Qwen/Qwen3-14B-AWQ revision
+`31c69efc29464b6bb0aee1398b5a7b50a99340c3`, vLLM0.8.5.post1,
+torch2.6.0+cu124, transformers4.51.3 и huggingface-hub0.30.2.
 
-Подтверждены маленький JSON-запрос, синтетическая CQA-оценка через существующий
-адаптер, общая схема/scorer и полный HTTP-сценарий приложения с апелляцией,
-новым критерием и сохранением истории после перезапуска. Браузерная проверка
-недоступна в этой среде; HTTP-проверка не выдаётся за визуальную проверку UI.
-`health=ready` сам по себе доказывает только наличие настроек.
+## Ключи и зависимости
 
-DEV обработан целиком: первый проход — 56 валидных оценок и 9 ошибок. После
-одного явного повторного прохода только по ошибкам — 62 оценки и 3 ошибки.
-Файл сдачи сохраняет все 65 ID, включая ошибки. Независимой ручной разметки
-нет; выборочный AI-разбор обнаружил смысловые ошибки, поэтому это не заявление
-о точности или готовности модели к промышленному использованию.
+Локальные зависимости — requirements-backend.txt и requirements-cqa-batch.txt,
+пакет установлен через `pip install -e .`. Официальный Brev CLI v0.6.337 в этой
+среде установлен в `backend/.venv/bin/brev`; бинарник/venv не входят в Git.
+`BREV_API_KEY` читается из корневого `.env` без печати и передаётся CLI/дочернему
+API-клиенту только через окружение. Login сохранять не требуется, `--token` не
+используется. `DEBUG_HTTP` удаляется; аналитика отключена.
 
-Первый маленький синтетический запрос выявил отсутствие `Python.h` при JIT
-компиляции xgrammar/Triton: engine завершился, лог первой ошибки сохранён.
-После установки `python3.10-dev` повторный синтетический запрос прошёл.
-Используется обычный backend `xgrammar`.
+Inference-ключ генерируется отдельно, хранится в приватном run-каталоге 0600,
+копируется на **новый принадлежащий сессии сервер** по SSH. `VLLM_API_KEY`
+передаётся серверу окружением. BREV-ключ на сервер не копируется и не становится
+`LLM_API_KEY`. Веса устанавливаются только удалённо, локально копируется tokenizer.
 
-| Параметр | Значение |
-|---|---|
-| Тип инстанса | Crusoe `l40s-48gb.1x` |
-| GPU / драйвер | 1 × L40S 48 GB / 565.57.01 |
-| Удалённый Python | 3.10.12 |
-| vLLM / torch | 0.8.5.post1 / 2.6.0+cu124, CUDA 12.4 |
-| transformers / huggingface-hub | 4.51.3 / 0.30.2 |
-| Модель | `Qwen/Qwen3-14B-AWQ` |
-| Model/tokenizer commit | `31c69efc29464b6bb0aee1398b5a7b50a99340c3` |
-| Served model name | `doomsday-qwen3-14b-awq` |
-| Контекст / предел генерации | 32768 / 4096 токенов |
-| Параллельность | 1, V0 engine, eager execution |
-| API на удалённом сервере | `127.0.0.1:8000/v1` |
+## Один воспроизводимый запуск
 
-`torch.cuda.is_available()` вернул `true`; `pip check` прошёл. Выбрана версия
-vLLM с CUDA 12.4, совместимая с обнаруженным драйвером; драйвер не обновлялся.
-Код backend, HTTP-контракт и frontend ради смены провайдера не меняются.
-
-## Бюджет и завершение
-
-Пользователь согласовал **не более $5 и 90 минут** для созданного тестового
-ресурса с удалением после сохранения логов. Каталожная GPU-ставка — $1.74/час.
-Консервативная оценка с резервом на 128 GB диска — **$1.756896/час**, или
-**$2.635344 за 90 минут**. Это расчётный верхний ориентир данной конфигурации,
-не подтверждённый счёт: часть хранения может уже входить в фиксированную цену.
-Отсчёт включает установку и скачивание весов, а не только генерацию.
-
-К 80-й минуте начать завершение: сохранить приватные логи, результаты и
-метаданные локально в игнорируемый `artifacts/`, завершить тест и удалить
-**только созданный тестовый инстанс** с подтверждением его отсутствия
-через API. При успешной ранней проверке завершить раньше. Не удалять другие
-инстансы или пользовательские данные. Выход из SSH, остановка vLLM и закрытие
-tunnel сами по себе не прекращают аренду. Перед удалением проверить, не остаётся
-отдельно оплачиваемый диск; фактические списания сверять с Brev, если доступны.
-Автопополнение и покупка кредитов не разрешены. Цены за токены неизвестны:
-стоимость аренды нельзя записывать в токенные ставки.
-
-## Удалённая установка и запуск
-
-Установлено в `~/workspace/doomsday-brev/venv` только на GPU-сервере:
+Все команды из корня. Для новой сессии выбрать новый каталог; `demo` ниже —
+пример имени. Команды создания вызывают платные ресурсы явно.
 
 ```bash
-sudo apt-get install -y --no-install-recommends python3.10-venv python3.10-dev
-python3 -m venv "$HOME/workspace/doomsday-brev/venv"
-"$HOME/workspace/doomsday-brev/venv/bin/python" -m pip install --no-cache-dir \
-  --only-binary=vllm,torch 'vllm==0.8.5.post1' \
-  'transformers==4.51.3' 'huggingface-hub==0.30.2'
-"$HOME/workspace/doomsday-brev/venv/bin/python" -m pip check
+backend/.venv/bin/python scripts/brev/session.py quote
+backend/.venv/bin/python scripts/brev/session.py list --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py create --run-dir artifacts/brev/demo --minutes 60 --budget-usd 3
+backend/.venv/bin/python scripts/brev/session.py prepare --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py forward --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py configure-env --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py tokenizer --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py ready --run-dir artifacts/brev/demo
 ```
 
-GCC уже присутствовал в образе. Одного venv недостаточно: xgrammar/Triton
-может компилировать CUDA-обёртки при первом запросе, для чего требуются Python
-headers выбранной версии и компилятор. Установка заголовков не меняет драйвер.
+`create` сначала проверяет инвентарь и актуальный тариф с диском. Существующие
+ресурсы блокируют автоматическое создание второго. Создаётся ровно один сервер,
+собственный ledger связывает случайное имя с environment ID. До создания
+watchdog подтверждает старт; за 15 мин до выбранного лимита он начинает stop/delete.
+Ошибки создания вызывают раннюю очистку, а не новый create. Долгий провижининг
+или установка входят в лимит. Не запускать тесты после начала cleanup.
 
-[serve_vllm_compat.sh](../scripts/brev/serve_vllm_compat.sh) не создаёт ресурсы,
-не устанавливает пакеты и не меняет драйвер. Перед запуском он проверяет версии,
-GPU и минимальный драйвер 550.54.15 для CUDA 12.4.1. Запуск **на Brev**:
+`prepare` использует существующие скрипты install/start/serve; драйвер не
+обновляется. `python3-dev` и compiler нужны xgrammar/Triton. Запуск проверяет
+GPU, минимальный драйвер 550.54.15, версии и приватность inference-файла.
+`forward` открывает localhost8001→удалённыйlocalhost8000. Web-console Tunnel,
+который требует браузерной авторизации, не используется.
+
+Процесс может грузить веса после завершения `prepare`. `ready` проверяет
+GET `/health` и `/v1/models`, без генерации. Только `model_status=ready`
+подтверждает наблюдаемую доступность engine/alias. Затем реальный smoke:
 
 ```bash
-bash serve_vllm_compat.sh --remote-brev \
-  "$HOME/workspace/doomsday-brev/venv/bin/python"
+backend/.venv/bin/python scripts/brev/smoke_inference.py --live --stage small --run-dir artifacts/brev/demo/small
+backend/.venv/bin/python scripts/brev/smoke_inference.py --live --stage cqa --run-dir artifacts/brev/demo/cqa
+backend/.venv/bin/python -m backend --host 127.0.0.1 --port 8000
 ```
 
-Отдельный случайный inference-ключ читается из
-`~/.config/doomsday/inference.key` (владелец — текущий пользователь, права
-`0600` или строже). Другой путь можно передать третьим аргументом. Ключ
-передаётся дочернему vLLM через `VLLM_API_KEY`, не через argv. `BREV_API_KEY`
-используется только локальным управлением инфраструктурой; на GPU не копируется
-и `LLM_API_KEY` не заменяет. При передаче inference-ключа использовать stdin SSH
-из Python, не печатать значение, заголовки или `.env`. Launcher удаляет
-`BREV_*` и `DEBUG_HTTP`, выключает телеметрию и журналирование запросов.
+Каждый smoke требует новый каталог и не повторяется автоматически. Первый
+проверяет чистый JSON и finish_reason=stop, второй — существующий адаптер,
+валидатор и scorer на публичной синтетике. Это не метрика точности.
 
-В этой версии нет серверного `--default-chat-template-kwargs`. Launcher
-загружает **только tokenizer** закреплённой модели на удалённой машине,
-добавляет в начало исходного шаблона `{%- set enable_thinking = false -%}`
-и сохраняет отдельный каталог:
+## Ограничения генерации и preflight
+
+Launcher закрепляет оригинальный tokenizer и добавляет
+`{%- set enable_thinking = false -%}` в его chat template. Сохранённый template
+одинаков для сервера и локального preflight; reasoning parser не нужен.
+Вывод JSON из message.content принимается только при finish_reason=stop.
+Контекст 32768, server max_new_tokens4096, V0 eager, max_num_seqs1,
+guided-decoding xgrammar. Temperature0.7/top_p0.8/top_k20/min_p0.0 сохранены.
+Параметры известны, побитовое воспроизведение случайных генераций не обещается.
+
+Перед любым новым набором использовать копию `RUN/tokenizer` и тот же
+transformers4.51.3. Передаваемые CLI параметры:
 
 ```text
-~/.cache/doomsday/qwen3-nonthinking/31c69efc29464b6bb0aee1398b5a7b50a99340c3/
-```
-
-Сервер получает этот tokenizer и этот же `chat_template.jinja`. Пустой
-закрытый think-блок входит в prompt; generated content должен содержать JSON.
-Reasoning parser не включается. JSON schema обеспечивается
-`--guided-decoding-backend xgrammar`; ответ всё равно проходит существующую
-локальную схему и scorer. `--generation-config vllm` с override
-`max_new_tokens=4096` задаёт серверный предел даже без `max_tokens` от backend.
-При `finish_reason=length` результат отклоняется. Несуществующей переменной
-`.env` для лимита генерации нет. Веса разрешает и скачивает vLLM **на Brev**.
-
-## SSH tunnel и настройки backend
-
-SSH alias на локальной машине создаётся через `brev refresh`. Прямой tunnel:
-
-```bash
-ssh -N -o ExitOnForwardFailure=yes \
-  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
-  -L 127.0.0.1:8001:127.0.0.1:8000 doomsday-cqa-1107-223417
-```
-
-После готовности сервера программно обновить нужные поля корневого `.env`,
-сохранив остальные настройки. Значение inference-ключа здесь не приводится:
-
-```dotenv
-LLM_BASE_URL=http://127.0.0.1:8001/v1
-LLM_MODEL=doomsday-qwen3-14b-awq
-LLM_API_KEY=<отдельный inference-ключ, совпадающий с серверным>
-LLM_API_STYLE=chat_completions
-LLM_STRUCTURED_OUTPUT=json_schema
-LLM_TIMEOUT_SECONDS=300
-LLM_MAX_ATTEMPTS=1
-LLM_INPUT_USD_PER_MILLION=
-LLM_OUTPUT_USD_PER_MILLION=
-```
-
-Сначала маленький синтетический JSON-запрос без DEV → синтетическая CQA через
-существующий адаптер, schema и scorer → перезапуск backend и сценарий
-оценка → evidence → апелляция → новый критерий → переоценка → сохранение после
-перезапуска. Успех каждого этапа фиксировать отдельно. Web-console Tunnel с
-браузерной авторизацией вместо SSH не используется.
-
-## Точный preflight перед DEV
-
-Скопировать **только созданный каталог tokenizer**, включая
-`chat_template.jinja` и `doomsday_serving.json`, в приватный локальный
-`artifacts/tokenizers/`; веса остаются на Brev. Для локального подсчёта
-использовать transformers **4.51.3**, как на сервере. В существующий
-`cqa_eval batch` передать:
-
-```text
---tokenizer artifacts/tokenizers/qwen3-nonthinking
+--tokenizer artifacts/brev/demo/tokenizer
 --chat-template-kwargs '{"enable_thinking":false}'
 --context-window 32768 --max-output-tokens 4096 --context-margin 512
 ```
 
-Сначала выполнить `--preflight`, без вызова модели, на **всём** выбранном
-наборе. CLI сам `.env` не читает: настройки передаются окружением процесса или
-загружаются программно без вывода секретов. Требуется
-input tokens + 4096 + 512 ≤ 32768 для каждого диалога. Флаг template kwargs
-влияет на подсчёт и manifest; режим inference задаёт серверный шаблон.
-Изменение kwargs блокирует `--resume` даже при одинаковом количестве токенов.
-После первого разрешённого smoke сверить `usage.input_tokens` с preflight.
-Не обрезать диалоги молча. Качество модели измеряется отдельно; техническая
-валидация и офлайн-тесты не являются метрикой точности.
+Каждый полный диалог должен помещаться вместе с 4096+512. Обрезание запрещено.
+CLI bridge `scripts/cqa.py` загружает `.env`; не вставлять секреты в shell/argv.
+Серверный предел не задаётся вымышленной переменной `.env`.
 
-## Источники
+## Расходы и завершение
 
-- [Pinned Docker/CUDA 12.4.1](https://raw.githubusercontent.com/vllm-project/vllm/v0.8.5.post1/docker/Dockerfile),
-  [torch](https://raw.githubusercontent.com/vllm-project/vllm/v0.8.5.post1/requirements/cuda.txt),
-  [драйвер CUDA 12.4.1](https://docs.nvidia.com/cuda/archive/12.4.1/cuda-toolkit-release-notes/index.html).
-- [Qwen3 registry](https://raw.githubusercontent.com/vllm-project/vllm/v0.8.5.post1/vllm/model_executor/models/registry.py),
-  [JSON schema и минимум server/request cap](https://raw.githubusercontent.com/vllm-project/vllm/v0.8.5.post1/vllm/entrypoints/openai/protocol.py),
-  [generation overrides](https://raw.githubusercontent.com/vllm-project/vllm/v0.8.5.post1/vllm/config.py).
-- [Qwen3 non-thinking](https://huggingface.co/Qwen/Qwen3-14B-AWQ),
-  [NVIDIA Brev SSH forwarding](https://docs.nvidia.com/brev/cli/connectivity).
+Актуальная котировка проверяется командой quote. Наблюдавшийся тариф GPU 1.74 USD/hr;
+консервативно 128GB×0.000132USD/GB/hr добавляется повторно, хотя CLI считает fixed
+диск включённым: итого 1.756896USD/hr. Тарифная оценка не является invoice.
+Остаток кредита недоступен через проверенные orgGET, поэтому не объявляется 50USD
+по факту наблюдения. Автопополнение/покупка кредитов не включаются.
+
+После нужных вычислений сохранить аудит и удалить сервер:
+
+```bash
+backend/.venv/bin/python scripts/brev/session.py capture --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py delete --run-dir artifacts/brev/demo
+backend/.venv/bin/python scripts/brev/session.py status --run-dir artifacts/brev/demo
+```
+
+Stop и accepted DELETE не доказывают удаление: ожидается raw API 404 и
+`environment_absent=true`. Скрипт проверяет name/ID до мутаций, повторяет только
+свой target ограниченно и сохраняет proof. Watchdog продолжает наблюдение после
+запроса удаления. Выход из SSH и остановка vLLM аренду не завершают.
+
+Для живого демо выбрать время запуска заранее: удалённая установка в проверенной
+сессии заняла несколько минут, затем загрузка модели. При выключенном GPU
+сохранённые оценки и апелляции доступны, новые оценки — нет. Демо после отбора
+команд пока без подтверждённого времени; бессрочный GPU ради ожидания не оставляется.
+
+## Подтверждения и ограничения
+
+Сессия MVP прошла реальные tiny/CQA, браузер 8/8 и restart4/4. Первый CQA наv2
+отклонён из-за отсутствия evidence/range у отрицательного флага; ответ сохранён.
+Форматный v2.1 не меняет scorer/веса/checklist/provider schema и прошёл синтетический
+smoke и два UI-вызова. Смысловой кандидат не активирован; независимой GT нет.
+Журналы, базы, токенизаторы и ключи находятся в игнорируемом artifacts/.
+
+Технические первоисточники: [vLLM pinned code](https://github.com/vllm-project/vllm/tree/v0.8.5.post1),
+[CUDA12.4 driver](https://docs.nvidia.com/cuda/archive/12.4.1/cuda-toolkit-release-notes/index.html),
+[Qwen3 model](https://huggingface.co/Qwen/Qwen3-14B-AWQ),
+[Brev CLI](https://github.com/brevdev/brev-cli/tree/v0.6.337).
+
+Watchdog работает локально: во время оплаченной сессии ноутбук должен оставаться
+включённым и иметь сеть. Перед выключением требуется подтверждённая очистка
+ресурса через API; сам факт наличия таймера не заменяет эту проверку.
