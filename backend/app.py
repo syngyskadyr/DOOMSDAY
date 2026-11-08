@@ -15,6 +15,7 @@ from starlette.staticfiles import StaticFiles
 from .environment import load_environment
 from .importing import InvalidJSON, ImportConflictError, ImportValidationError, parse_json
 from .ml_adapter import AdapterUnavailable, AdapterValidationError, MLAdapter
+from .model_health import ModelReadiness
 from . import openapi
 from .service import APIError, Service, invalid
 from .store import Store
@@ -62,9 +63,10 @@ def revision_field(body):
 
 
 def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHECKLIST, adapter=None, frontend_path=None,
-               env_file=None, load_env_file=True):
+               env_file=None, load_env_file=True, model_probe=None):
     load_environment(env_file, enabled=load_env_file)
     adapter = adapter if adapter is not None else MLAdapter()
+    model_probe = model_probe if model_probe is not None else ModelReadiness(adapter._settings)
     db_path = db_path if db_path is not None else os.environ.get("DOOMSDAY_DB_PATH", ROOT / "backend/data/doomsday.sqlite3")
     public_path = Path(frontend_path) if frontend_path is not None else ROOT / "frontend/public"
     if frontend_path is not None and not public_path.is_dir():
@@ -140,6 +142,11 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
         ready, message = adapter.availability()
         return {"status": "ok", "api_version": "1", "evaluator_status": "ready" if ready else "unavailable",
                 "evaluator_message": message}
+
+    @app.get("/api/model-health")
+    def model_health():
+        """Observe local vLLM without generation; independent of configuration health."""
+        return JSONResponse(model_probe.check(), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/conversations/import", openapi_extra=openapi.IMPORT)
     async def import_conversations(request: Request):

@@ -55,10 +55,10 @@ function filterControls(items, filters, onChange, analytics = false) {
 }
 
 function importDialog(ctx) {
-  const modal = openDialog("Импорт диалогов", { signal: ctx.signal });
+  const modal = openDialog("Загрузка диалогов", { signal: ctx.signal });
   const file = h("input", { type: "file", accept: ".json,application/json", required: true });
   const messages = h("div");
-  const submit = button("Импортировать", { kind: "primary", type: "submit", glyph: "import" });
+  const submit = button("Загрузить", { kind: "primary", type: "submit", glyph: "import" });
   modal.body.append(h("form", {
     class: "form-stack",
     onsubmit: async (event) => {
@@ -130,7 +130,7 @@ export async function registryView(ctx) {
       body.replaceChildren(items.length
         ? emptyState("Диалоги не найдены", "Измените запрос или сбросьте фильтры.", button("Сбросить фильтры", { onclick: reset }))
         : emptyState("Диалогов пока нет", "Загрузите JSON-выгрузку, чтобы открыть разговоры и запустить оценку.",
-          button("Импортировать JSON", { kind: "primary", glyph: "import", onclick: openImport })));
+          button("Загрузка диалогов", { kind: "primary", glyph: "import", onclick: openImport })));
       pagination.hidden = true;
       return;
     }
@@ -156,7 +156,7 @@ export async function registryView(ctx) {
 
   const content = h("div", { class: "view" },
     intro("Диалоги операторов", "Открывайте разговоры, проверяйте оценки и переходите к репликам, на которых основан вывод.", {
-      hero: true, actions: button("Импорт JSON", { glyph: "import", kind: "primary", onclick: openImport }),
+      hero: true, actions: button("Загрузка диалогов", { glyph: "import", kind: "primary", onclick: openImport }),
     }),
     h("div", { class: "stat-grid" },
       statCard("Всего диалогов", numberLabel(summary.total), "Загружено в реестр", "conversations", "info"),
