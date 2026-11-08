@@ -45,6 +45,10 @@ class Service:
     def __init__(self, store, adapter):
         self.store, self.adapter = store, adapter
 
+    def import_official_results(self, payload, dataset="dev"):
+        from .result_importing import import_official_results
+        return import_official_results(self, payload, dataset)
+
     def import_conversations(self, payload):
         records = normalize_import(payload)
         imported = skipped = 0
@@ -199,6 +203,8 @@ class Service:
             document = self.store.evaluation(db, evaluation_id)
             if document is None:
                 missing("Оценка")
+            if document.get("import_source", {}).get("read_only"):
+                conflict("Импортированный официальный результат доступен только для чтения: исходный полный ответ модели отсутствует.")
             if document["revision"] != expected_revision:
                 conflict()
             if document["final"] is None:

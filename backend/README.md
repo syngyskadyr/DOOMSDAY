@@ -272,3 +272,32 @@ health, список, карточка, чек-лист проверены ре�
 `checked_at`, `generation_tested=false`. Общий timeout 2 секунды, кэш 4 секунды.
 Для других провайдеров готовность остаётся `unknown`; API и модель в UI показаны
 раздельно. Наличие настроек не доказывает возможность новой оценки.
+# Saved real DEV results for the jury demo
+
+From the repository root, with the private original DEV dataset available:
+
+```powershell
+$env:PYTHONPATH = 'src'
+python -m backend --host 127.0.0.1 --port 8000 --dev codex_context/data/dev.json --results results/dev/results.json --db backend/data/demo.sqlite3 --no-env-file
+```
+
+`--results` imports the validated official DEV into the existing evaluations table
+at startup: 64 completed assessments and one failed record, without inference.
+Repeat startup/import skips identical rows, preserving evaluation IDs and timestamps.
+A changed result or an existing native evaluation causes a conflict and rolls back
+the entire results import. Unrelated conversations can remain in the database.
+The source JSON, reserve and transcripts are never rewritten or published.
+
+Open `http://127.0.0.1:8000/`. The same backend serves `frontend/public` and `/api`;
+no separate frontend server, tunnel or model credentials are required to view saved
+results. For an offline demo, leave `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` unset.
+`--no-env-file` skips dotenv loading but does not clear inherited environment values.
+
+Each evaluation preserves the complete official row in `import_source.result`,
+including original criterion codes, bool/null/int values, rationale, evidence_turns,
+score and processing-error status. Presentation fields map official codes to 01–08
+and evidence_turns to the actual local messages. Source-model usage/latency/cost
+remain unknown. Imported evaluations are read-only: the official format lacks raw
+checked ranges, N/A reason fields and violation types. No missing evidence is
+invented and the display assessment is not claimed to be a raw model response.
+Native evaluations and their existing appeal workflow are unchanged.

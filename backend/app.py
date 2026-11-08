@@ -64,7 +64,7 @@ def revision_field(body):
 
 
 def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHECKLIST, adapter=None, frontend_path=None,
-               env_file=None, load_env_file=True, model_probe=None):
+               env_file=None, load_env_file=True, model_probe=None, results_path=None):
     load_environment(env_file, enabled=load_env_file)
     adapter = adapter if adapter is not None else MLAdapter()
     model_probe = model_probe if model_probe is not None else ModelReadiness(adapter._settings)
@@ -87,6 +87,9 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
                 logger.info("DEV import: imported=%s skipped=%s", imported["imported"], imported["skipped"])
             else:
                 logger.warning("DEV file absent; import JSON with POST /api/conversations/import.")
+        if results_path is not None:
+            imported = service.import_official_results(parse_json(Path(results_path).read_bytes()))
+            logger.info("Official DEV results: imported=%s skipped=%s", imported["imported"], imported["skipped"])
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="cqa-evaluation")
         app.state.executor = executor
         try:
