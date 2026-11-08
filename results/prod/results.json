@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "team_name": "DOOMSDAY",
+  "team_name": "squad",
   "model": {
     "mode": "local",
     "name": "Qwen/Qwen3-14B-AWQ"
