@@ -184,7 +184,7 @@ fi
 backend/.venv/bin/python scripts/cqa.py export-results \
   --dataset prod --input "$cqa_control_input" --expected-count 10 \
   --checklist codex_context/checklist.json --run-dir "$cqa_control_run" \
-  --team-name DOOMSDAY --model-mode local \
+  --team-name squad --model-mode local \
   --model-name Qwen/Qwen3-14B-AWQ --served-model-name doomsday-qwen3-14b-awq \
   --allow-unprocessed --out "$cqa_control_root/submission/results.json"
 

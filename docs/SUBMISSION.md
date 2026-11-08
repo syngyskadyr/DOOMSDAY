@@ -70,7 +70,7 @@ SERVED_MODEL_NAME="$(python -c 'import sys; from cqa_eval.data import read_json;
 ```bash
 backend/.venv/bin/python -m cqa_eval export-results \
   --dataset dev --input codex_context/data/dev.json --expected-count 65 \
-  --run-dir artifacts/cqa/dev-run --team-name DOOMSDAY \
+  --run-dir artifacts/cqa/dev-run --team-name squad \
   --model-name Qwen/Qwen3-14B-AWQ --served-model-name "$SERVED_MODEL_NAME" \
   --model-mode local --out results/dev/results.json
 ```
@@ -92,7 +92,7 @@ backend/.venv/bin/python scripts/cqa.py export-results \
   --dataset dev --input codex_context/data/dev.json --expected-count 65 \
   --run-dir artifacts/brev/approved-smoke-20261108/dev-run-version-bound \
   --recovery-run-dir artifacts/brev/final-delivery-20261108/recovery \
-  --team-name DOOMSDAY --model-name Qwen/Qwen3-14B-AWQ \
+  --team-name squad --model-name Qwen/Qwen3-14B-AWQ \
   --served-model-name "$SERVED_MODEL_NAME" --model-mode local \
   --provenance-out artifacts/brev/final-delivery-20261108/submission/provenance.json \
   --out artifacts/brev/final-delivery-20261108/submission/results.json
@@ -132,13 +132,13 @@ saved assessment и сохраняет источник каждой запис�
 ```bash
 python -m cqa_eval export-results \
   --dataset dev --input codex_context/data/dev.json --expected-count 65 \
-  --collected artifacts/cqa/dev-collected.json --team-name DOOMSDAY \
+  --collected artifacts/cqa/dev-collected.json --team-name squad \
   --model-name Qwen/Qwen3-14B-AWQ --served-model-name "$SERVED_MODEL_NAME" \
   --model-mode local --out results/dev/results.json
 
 python -m cqa_eval export-results \
   --dataset prod --input codex_context/data/prod.json --expected-count 10 \
-  --collected artifacts/cqa/prod-collected.json --team-name DOOMSDAY \
+  --collected artifacts/cqa/prod-collected.json --team-name squad \
   --model-name Qwen/Qwen3-14B-AWQ --served-model-name "$SERVED_MODEL_NAME" \
   --model-mode local --out results/prod/results.json
 ```
@@ -224,7 +224,7 @@ python -m cqa_eval batch-collect --input "$SOURCE" --expected-count "$EXPECTED" 
   --run-dir "$RUN_DIR" --out "$OUT_DIR/collected.json"
 python -m cqa_eval export-results --dataset "$DATASET" --input "$SOURCE" \
   --expected-count "$EXPECTED" --collected "$OUT_DIR/collected.json" \
-  --team-name DOOMSDAY --model-name Qwen/Qwen3-14B-AWQ \
+  --team-name squad --model-name Qwen/Qwen3-14B-AWQ \
   --served-model-name "$SERVED_MODEL_NAME" --model-mode local \
   --out "$OUT_DIR/results.json"
 python -m cqa_eval validate-results --dataset "$DATASET" --input "$SOURCE" \
@@ -261,7 +261,7 @@ sha256sum results/dev/results.json > "$OUT_DIR/published-before.sha256"
 python -m cqa_eval export-results --dataset dev \
   --input codex_context/data/dev.json --expected-count 65 \
   --run-dir "$RUN_DIR" --recovery-run-dir "$RECOVERY_DIR" \
-  --team-name DOOMSDAY --model-name Qwen/Qwen3-14B-AWQ \
+  --team-name squad --model-name Qwen/Qwen3-14B-AWQ \
   --served-model-name "$SERVED_MODEL_NAME" --model-mode local \
   --provenance-out "$OUT_DIR/provenance.json" --out "$OUT_DIR/results.json"
 python -m cqa_eval validate-results --dataset dev --input codex_context/data/dev.json \
