@@ -1,7 +1,9 @@
 """Sequential, durable batch processing using the existing evaluator and validator."""
 from collections import Counter
 from contextlib import contextmanager
+from copy import deepcopy
 from decimal import Decimal
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -57,8 +59,26 @@ def run_lock(directory):
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
-def load_token_counter(path):
+def validate_chat_template_kwargs(value):
+    """Template variables only; never override tokenizer/counting controls."""
+    if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+        raise InputError("--chat-template-kwargs must be a JSON object")
+    reserved = {"conversation", "messages", "tools", "documents", "chat_template",
+                "add_generation_prompt", "continue_final_message", "tokenize", "padding",
+                "truncation", "max_length", "return_tensors", "return_dict",
+                "return_assistant_tokens_mask", "tokenizer_kwargs"}
+    if reserved.intersection(value):
+        raise InputError("--chat-template-kwargs contains reserved tokenizer/counting options")
+    try:
+        json.dumps(value, allow_nan=False)
+    except (TypeError, ValueError):
+        raise InputError("--chat-template-kwargs must contain JSON values only") from None
+    return deepcopy(value)
+
+
+def load_token_counter(path, *, chat_template_kwargs=None):
     """Local tokenizer only. No model weights, downloads or remote Python code."""
+    kwargs = validate_chat_template_kwargs({} if chat_template_kwargs is None else chat_template_kwargs)
     if not Path(path).is_dir():
         raise InputError("--tokenizer must point to the local serving tokenizer directory")
     try:
@@ -72,9 +92,11 @@ def load_token_counter(path):
     def count(prepared):
         messages = [{"role": key, "content": prepared[key]} for key in ("system", "user")]
         try:
-            return len(tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True))
-        except (ValueError, TypeError):
+            return len(tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, **kwargs))
+        except (ValueError, TypeError, ImportError):
             raise InputError("Cannot apply local chat template; it must match the serving template") from None
+    # The same variables used to count are bound into the durable run identity.
+    count.chat_template_kwargs = kwargs
     return count
 
 
@@ -83,6 +105,7 @@ def preflight(records, checklist, settings, *, context_window, margin=512, token
         raise InputError("Input dataset is empty")
     if context_window <= 0 or margin < 0 or settings.max_output_tokens is None:
         raise InputError("Positive context-window/max-output-tokens and nonnegative margin are required")
+    template_kwargs = validate_chat_template_kwargs(getattr(token_counter, "chat_template_kwargs", {}))
     rows = []
     for dialogue in records:
         prepared = prepare_request(dialogue, checklist)
@@ -96,13 +119,17 @@ def preflight(records, checklist, settings, *, context_window, margin=512, token
                      "required_context": required, "fits": required <= context_window,
                      "dialogue_hash": fingerprint(dialogue), "prompt_hash": fingerprint(prepared),
                      "request_hash": fingerprint(request_body(prepared, settings))})
-    return {"records": len(rows), "token_count_method": "local_chat_template" if token_counter else "utf8_bytes_estimate_only",
+    report = {"records": len(rows), "token_count_method": "local_chat_template" if token_counter else "utf8_bytes_estimate_only",
             "context_window": context_window, "max_output_tokens": settings.max_output_tokens,
             "margin": margin, "missing_settings": settings.missing(),
             "max_input_tokens": max(r["input_tokens"] for r in rows),
             "oversized_ids": [r["conversation_id"] for r in rows if not r["fits"]],
             "ready": bool(token_counter) and settings.api_style == "chat_completions" and not settings.missing() and all(r["fits"] for r in rows),
             "items": rows}
+    # Preserve legacy manifests when no template variables were overridden.
+    if template_kwargs:
+        report["chat_template_kwargs"] = template_kwargs
+    return report
 
 
 def _validated_saved(saved, dialogue, checklist, item):
@@ -171,12 +198,14 @@ def _summary(directory, records, checklist, report, *, states=None):
 
 def run_batch(records, checklist, settings, directory, *, context_window, margin=512,
               token_counter=None, resume=False, retry_errors=False, retry_interrupted=False,
-              limit=None, progress=None):
+              limit=None, progress=None, initialize_only=False):
     settings.validate()
     if settings.api_style != "chat_completions":
         raise InputError("Batch token preflight currently requires chat_completions")
     if limit is not None and limit <= 0:
         raise InputError("--limit must be positive")
+    if initialize_only and (resume or retry_errors or retry_interrupted or limit is not None):
+        raise InputError("Initialization requires a new run without resume, retry or limit options")
     if (retry_errors or retry_interrupted) and not resume:
         raise InputError("Retry flags require --resume")
     report = preflight(records, checklist, settings, context_window=context_window,
@@ -206,6 +235,11 @@ def run_batch(records, checklist, settings, directory, *, context_window, margin
             atomic_write(manifest, identity)
         # Validate all existing successes before issuing any further API calls.
         status = _summary(directory, records, checklist, report)
+        if initialize_only:
+            # Persist every input as pending before the inference window opens.
+            # Normal resume uses the same manifest and existing validation.
+            atomic_write(directory / "summary.json", status)
+            return status
         processed = 0
         for index, (dialogue, item, current) in enumerate(zip(records, report["items"], status["items"]), 1):
             state = current["state"]

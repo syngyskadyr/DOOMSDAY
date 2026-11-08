@@ -3,6 +3,7 @@ import { appealsView } from "./appeals.js";
 import { checklistView } from "./checklists.js";
 import { dialogueView } from "./dialogue.js";
 import { analyticsView, registryView } from "./overview.js";
+import { apiAvailable, modelPresentation } from "./readiness.js";
 import { badge, button, emptyState, errorNotice, h, icon, linkButton, loading, notice } from "./ui.js";
 
 const routes = {
@@ -17,7 +18,7 @@ const navLinks = new Map(Object.entries(routes).map(([key, { label, glyph }]) =>
 ]));
 const main = h("main", { id: "content", tabindex: "-1" });
 const sectionName = h("span", { class: "crumb-current" });
-const connection = h("div", { class: "connection", role: "status" }, badge("Подключение…", "neutral", true));
+const connection = h("div", { class: "connection", role: "status", "aria-label": "Доступность API и модели" });
 const flash = h("div", { class: "flash" });
 let active;
 let flashTimeout;
@@ -31,11 +32,11 @@ function announce(message) {
 
 const sidebar = h("aside", { class: "sidebar" },
   h("a", { class: "brand", href: "#/dialogues" }, h("img", { src: "./mark.svg", alt: "", width: "40", height: "40" }),
-    h("span", {}, h("strong", {}, "DOOMSDAY"), h("small", {}, "QUALITY WORKSPACE"))),
+    h("span", {}, h("strong", {}, "DOOMSDAY"), h("small", {}, "КОНТРОЛЬ КАЧЕСТВА"))),
   h("p", { class: "nav-label" }, "РАБОЧАЯ ОБЛАСТЬ"),
   h("nav", { "aria-label": "Основная навигация" }, [...navLinks.values()]),
   h("div", { class: "sidebar-footer" }, h("span", { class: "footer-mark" }, icon("activity", 17)),
-    h("div", {}, h("strong", {}, "CQA Hackathon"), h("small", {}, "Freedom Broker"))));
+    h("div", {}, h("strong", {}, "DOOMSDAY"), h("small", {}, "Рабочее пространство"))));
 
 document.getElementById("app").append(h("div", { class: "app-shell" }, sidebar,
   h("div", { class: "workspace" },
@@ -79,16 +80,29 @@ async function render({ navigate = false } = {}) {
   }
   if (navigate) window.scrollTo(0, 0);
   main.replaceChildren(loading());
-  const health = api.health(signal).then((status) => {
-    if (!signal.aborted) connection.replaceChildren(badge("API подключён", "success", true));
-    return status;
-  }).catch(() => {
-    if (!signal.aborted) connection.replaceChildren(badge("API недоступен", "danger", true));
-    return null;
-  });
+  let timer;
+  const listeners = new Set();
+  const readiness = { api: null, model: null, subscribe: (callback) => listeners.add(callback) };
+  signal.addEventListener("abort", () => { clearTimeout(timer); listeners.clear(); }, { once: true });
+  connection.replaceChildren(badge("API: проверка…", "neutral", true), badge("Модель: проверка…", "neutral", true));
+  async function checkReadiness() {
+    const [apiResult, modelResult] = await Promise.allSettled([api.health(signal), api.modelHealth(signal)]);
+    if (signal.aborted) return;
+    readiness.api = apiResult.status === "fulfilled" ? apiResult.value : null;
+    readiness.model = modelResult.status === "fulfilled" ? modelResult.value : null;
+    const model = modelPresentation(readiness.model);
+    const modelBadge = badge(model.label, model.tone, true);
+    modelBadge.title = (readiness.model?.message || "Готовность модели неизвестна.") +
+      (readiness.model?.checked_at ? " Проверено: " + new Date(readiness.model.checked_at).toLocaleTimeString("ru-RU") + "." : "");
+    const apiReady = apiAvailable(readiness.api);
+    connection.replaceChildren(badge(apiReady ? "API: доступен" : "API: недоступен", apiReady ? "success" : "danger", true), modelBadge);
+    for (const callback of listeners) callback();
+    timer = setTimeout(checkReadiness, 15000);
+  }
+  const health = checkReadiness();
   const onMount = [];
   const ctx = {
-    ...route, signal, health, announce,
+    ...route, signal, health, readiness, announce,
     onMount: (callback) => onMount.push(callback),
     refresh: (message) => { announce(message); render(); },
   };

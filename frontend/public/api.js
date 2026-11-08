@@ -49,6 +49,7 @@ const post = (path, body) => request(path, { method: "POST", body });
 
 export const api = {
   health: (signal) => request("/health", { signal }),
+  modelHealth: (signal) => request("/model-health", { signal }),
   conversations: (params, signal) => request("/conversations", { params, signal }),
   conversation: (id, signal) => request("/conversations/" + segment(id), { signal }),
   importConversations: (json) => post("/conversations/import", json),

@@ -7,6 +7,7 @@ import {
   roleLabel, scoreLabel, statuses,
 } from "./model.js";
 import { appealTimeline, assessmentExplanation } from "./result-notes.js";
+import { evaluationGate } from "./readiness.js";
 import {
   badge, button, channelTag, emptyState, errorNotice, field, flagBadge, h, icon, intro,
   linkButton, notice, panelHeading, select, statusBadge,
@@ -179,7 +180,7 @@ function resultPanel(ctx, evaluation, jump) {
 
 export async function dialogueView(ctx) {
   const { id, query, signal } = ctx;
-  const [dialogue, versions, health] = await Promise.all([
+  const [dialogue, versions] = await Promise.all([
     api.conversation(id, signal), api.checklists(signal), ctx.health,
   ]);
   const selectedEvaluation = query.get("evaluation") || dialogue.latest_evaluation_id;
@@ -189,6 +190,7 @@ export async function dialogueView(ctx) {
   const jobPanel = h("div", { class: "view job-panel" });
   const jobStatus = h("p", { class: "sr-only", role: "status" });
   const launchMessages = h("div");
+  const readinessMessage = h("div", { class: "model-readiness-note", role: "status" });
   const version = select(versions.items.map((item) => [item.version, "Версия " + item.version +
     (item.version === versions.current_version ? " · текущая" : "")]), versions.current_version);
   const launch = button("Оценить", { kind: "primary", glyph: "bolt", type: "submit" });
@@ -202,9 +204,13 @@ export async function dialogueView(ctx) {
       const entry = item.evaluation_id === evaluation?.evaluation_id ? evaluation : item;
       return entry.checklist_version === version.value && isPending(entry.status);
     });
-    launch.disabled = submitting || active || health?.evaluator_status === "unavailable";
-    launch.title = active ? "Оценка по этой версии уже выполняется" : "";
+    const gate = evaluationGate(ctx.readiness.api, ctx.readiness.model, { submitting, active });
+    launch.disabled = gate.disabled;
+    launch.title = gate.reason;
+    launch.replaceChildren(icon("bolt", 16), submitting ? "Запуск оценки…" : "Оценить");
+    readinessMessage.replaceChildren(notice(gate.reason, gate.disabled && !submitting && !active ? "warning" : "info"));
   }
+  ctx.readiness.subscribe(updateLaunch);
   version.addEventListener("change", updateLaunch);
   signal.addEventListener("abort", () => clearTimeout(pollTimer), { once: true });
 
@@ -289,8 +295,7 @@ export async function dialogueView(ctx) {
         h("section", { class: "panel launch-panel" },
           panelHeading("Оценивание", "Выберите версию правил для этого диалога",
             linkButton("К чек-листам", checklistHref({ dialogue: id }), { kind: "quiet small", glyph: "checklist" })),
-          startForm, health?.evaluator_status === "unavailable" &&
-            notice(health.evaluator_message || "Оценщик пока недоступен."),
+          startForm, readinessMessage,
           launchMessages, dialogue.evaluation_history.length > 0 && field("История оценок", history)),
         jobStatus, jobPanel)));
 }
