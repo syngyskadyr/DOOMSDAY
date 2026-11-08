@@ -184,7 +184,7 @@ $DevRun = (Resolve-Path 'artifacts/cqa/COMPLETED-DEV-RUN').Path
 $ServedModel = (Get-Content -LiteralPath (Join-Path $DevRun 'manifest.json') -Raw | ConvertFrom-Json).model
 $stamp = Get-Date -Format 'yyyyMMddTHHmmssfff'
 $candidate = "artifacts/submission-candidates/dev-$stamp.json"
-& $python -m cqa_eval export-results --dataset dev --input codex_context/data/dev.json --expected-count 65 --run-dir $DevRun --team-name DOOMSDAY --model-name Qwen/Qwen3-14B-AWQ --served-model-name $ServedModel --model-mode local --out $candidate
+& $python -m cqa_eval export-results --dataset dev --input codex_context/data/dev.json --expected-count 65 --run-dir $DevRun --team-name squad --model-name Qwen/Qwen3-14B-AWQ --served-model-name $ServedModel --model-mode local --out $candidate
 Assert-Success
 & $python -m cqa_eval validate-results --dataset dev --input codex_context/data/dev.json --response $candidate
 Assert-Success
@@ -221,7 +221,7 @@ $ProdInput = (Resolve-Path 'codex_context/data/prod.json').Path
 $ProdRun = (Resolve-Path 'artifacts/cqa/COMPLETED-PROD-RUN').Path
 $ServedModel = (Get-Content -LiteralPath (Join-Path $ProdRun 'manifest.json') -Raw | ConvertFrom-Json).model
 if (Test-Path -LiteralPath results/prod/results.json) { throw 'PROD already exists; preserve and review it first' }
-& $python -m cqa_eval export-results --dataset prod --input $ProdInput --expected-count 10 --run-dir $ProdRun --team-name DOOMSDAY --model-name Qwen/Qwen3-14B-AWQ --served-model-name $ServedModel --model-mode local --out results/prod/results.json
+& $python -m cqa_eval export-results --dataset prod --input $ProdInput --expected-count 10 --run-dir $ProdRun --team-name squad --model-name Qwen/Qwen3-14B-AWQ --served-model-name $ServedModel --model-mode local --out results/prod/results.json
 Assert-Success
 & $python -m cqa_eval validate-results --dataset prod --input $ProdInput --response results/prod/results.json
 Assert-Success
