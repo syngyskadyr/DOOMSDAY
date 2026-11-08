@@ -2,11 +2,12 @@ import { api } from "./api.js";
 import { appealsView } from "./appeals.js";
 import { checklistView } from "./checklists.js";
 import { dialogueView } from "./dialogue.js";
-import { analyticsView, registryView } from "./overview.js";
+import { analyticsView, dashboardView, registryView } from "./overview.js";
 import { apiAvailable, modelPresentation } from "./readiness.js";
 import { badge, button, emptyState, errorNotice, h, icon, linkButton, loading, notice } from "./ui.js";
 
 const routes = {
+  dashboard: { label: "Обзор", glyph: "activity", view: dashboardView },
   dialogues: { label: "Диалоги", glyph: "conversations", view: registryView },
   checklists: { label: "Чек-листы", glyph: "checklist", view: checklistView },
   appeals: { label: "Апелляции", glyph: "appeals", view: appealsView },
@@ -31,7 +32,7 @@ function announce(message) {
 }
 
 const sidebar = h("aside", { class: "sidebar" },
-  h("a", { class: "brand", href: "#/dialogues" }, h("img", { src: "./mark.svg", alt: "", width: "40", height: "40" }),
+  h("a", { class: "brand", href: "#/dashboard" }, h("img", { src: "./mark.svg", alt: "", width: "40", height: "40" }),
     h("span", {}, h("strong", {}, "DOOMSDAY"), h("small", {}, "КОНТРОЛЬ КАЧЕСТВА"))),
   h("p", { class: "nav-label" }, "РАБОЧАЯ ОБЛАСТЬ"),
   h("nav", { "aria-label": "Основная навигация" }, [...navLinks.values()]),
@@ -54,7 +55,7 @@ document.querySelector(".skip-link").addEventListener("click", (event) => {
 
 function routeFor(hash) {
   const [path, search] = hash.slice(1).split("?", 2);
-  if (!path || path === "/") return { key: "dialogues", query: new URLSearchParams(search) };
+  if (!path || path === "/") return { key: "dashboard", query: new URLSearchParams(search) };
   const [, key, encodedId, ...extra] = path.split("/");
   if (!path.startsWith("/") || !Object.hasOwn(routes, key) || extra.length) return {};
   const query = new URLSearchParams(search);

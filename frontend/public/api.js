@@ -9,6 +9,8 @@ export class ApiError extends Error {
 }
 
 async function request(path, { params, method = "GET", body, signal } = {}) {
+  const timeout = AbortSignal.timeout(20000);
+  const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== "" && value != null) query.set(key, value);
@@ -19,7 +21,7 @@ async function request(path, { params, method = "GET", body, signal } = {}) {
   try {
     response = await fetch(url, {
       method,
-      signal,
+      signal: requestSignal,
       cache: "no-store",
       headers: body === undefined
         ? { Accept: "application/json" }
@@ -30,7 +32,8 @@ async function request(path, { params, method = "GET", body, signal } = {}) {
       payload = await response.json();
     }
   } catch (error) {
-    if (error.name === "AbortError") throw error;
+    if (signal?.aborted) throw error;
+    if (timeout.aborted) throw new ApiError("Сервер не ответил за 20 секунд. Обновите данные. Запрос не будет отправлен повторно автоматически.");
     throw new ApiError(response ? "Некорректный ответ сервера." : "Нет связи с сервером.");
   }
   if (!response.ok) {
@@ -73,6 +76,9 @@ export async function allConversations(signal) {
   let offset = 0;
   while (true) {
     const { items, total } = await api.conversations({ limit, offset }, signal);
+    if (!Array.isArray(items) || !Number.isInteger(total) || total < 0 || items.some(item => typeof item?.conversation_id !== "string")) {
+      throw new ApiError("Некорректный формат списка диалогов.");
+    }
     for (const item of items) rows.set(item.conversation_id, item);
     offset += items.length;
     if (!items.length || offset >= total) return [...rows.values()];

@@ -46,7 +46,9 @@ test("readiness uses a GET with no generation body and supports cancellation", a
     assert.equal(url, "/api/model-health");
     assert.equal(options.method, "GET");
     assert.equal(options.body, undefined);
-    assert.equal(options.signal, controller.signal);
+    assert.equal(options.signal.aborted, false);
+    controller.abort();
+    assert.equal(options.signal.aborted, true);
     return Response.json(ready);
   });
   assert.deepEqual(await api.modelHealth(controller.signal), ready);
