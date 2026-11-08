@@ -25,21 +25,29 @@ def parser():
                               ("batch", "Process an entire DEV/PROD envelope with durable checkpoints"),
                               ("batch-collect", "Collect complete validated results for internal handoff, offline"),
                               ("export-results", "Export organizer JSON 1.0 offline, including processing errors"),
+                              ("validate-results", "Validate an official organizer results.json offline"),
                               ("eval", "Prepare independent review or compare saved predictions")):
         cmd = sub.add_parser(name, help=description, description=description)
         cmd.add_argument("--dev", "--input", dest="dev", type=Path, help="DEV/PROD envelope; default CONTEXT/data/dev.json")
         cmd.add_argument("--checklist", type=Path, help="Checklist; default CONTEXT/checklist.json")
         cmd.add_argument("--out", type=Path, help="Write JSON here instead of stdout")
-        if name not in {"eval", "batch", "batch-collect", "export-results"}:
+        if name not in {"eval", "batch", "batch-collect", "export-results", "validate-results"}:
             cmd.add_argument("--id", required=name in {"dry-run", "evaluate"}, help="Explicit conversation_id")
             cmd.add_argument("--dialogue", type=Path, help="Single dialogue JSON, e.g. synthetic fixture")
-        if name in {"validate", "score"}:
+        if name in {"validate", "score", "validate-results"}:
             cmd.add_argument("--response", type=Path, required=True, help="Strict assessment or backend wrapper JSON")
+        if name == "validate-results":
+            cmd.add_argument("--dataset", choices=["dev", "prod"], required=True)
         if name == "evaluate":
             # Require a destination so paid successes and processing errors persist.
             cmd.add_argument("--save", type=Path, required=True, help="Save result/error plus call metadata")
         if name in {"batch", "batch-collect", "export-results"}:
-            cmd.add_argument("--run-dir", type=Path, required=True)
+            if name == "export-results":
+                source = cmd.add_mutually_exclusive_group(required=True)
+                source.add_argument("--run-dir", type=Path, help="Durable batch run; also supports processing errors")
+                source.add_argument("--collected", type=Path, help="Existing cqa-batch-results-1 JSON from batch-collect")
+            else:
+                cmd.add_argument("--run-dir", type=Path, required=True)
             cmd.add_argument("--expected-count", type=int, help="Fail if input count differs; no fixed DEV/PROD size")
         if name == "export-results":
             cmd.add_argument("--dataset", choices=["dev", "prod"], required=True)
@@ -98,11 +106,22 @@ def run(args):
     context = args.context
     checklist = validate_checklist(read_json(args.checklist or context / "checklist.json"))
     records = [] if getattr(args, "dialogue", None) else load_dev(args.dev or context / "data/dev.json")
+    if args.command == "validate-results":
+        from .submission import validate_submission
+        if args.out is not None and args.out.resolve() == args.response.resolve():
+            raise InputError("Validation report must not overwrite the submission")
+        if args.dataset == "prod" and args.dev is None:
+            raise InputError("PROD validation requires an explicit --input")
+        result = validate_submission(read_json(args.response), records, args.dataset)
+        return {"valid": True, "schema_version": result["schema_version"], "dataset": args.dataset,
+                "records": len(result["results"]),
+                "ok": sum(row["status"] == "ok" for row in result["results"]),
+                "errors": [row["conversation_id"] for row in result["results"] if row["status"] == "error"]}
     if args.command in {"batch", "batch-collect", "export-results"}:
         if args.expected_count is not None and len(records) != args.expected_count:
             raise InputError(f"Expected {args.expected_count} records, found {len(records)}")
         if args.command == "export-results":
-            from .submission import export_submission, export_submission_with_provenance
+            from .submission import export_collected_submission, export_submission, export_submission_with_provenance
             if args.dataset == "prod" and args.dev is None:
                 raise InputError("PROD export requires an explicit --input; DEV is never substituted")
             destination = args.out or Path("results") / args.dataset / "results.json"
@@ -110,7 +129,9 @@ def run(args):
                 raise InputError("Submission destination already exists; choose a new file or preserve it first")
             if args.recovery_run_dir is not None and args.provenance_out is None:
                 raise InputError("Recovery export requires --provenance-out for separate source identities")
-            sources = [args.run_dir] + ([args.recovery_run_dir] if args.recovery_run_dir is not None else [])
+            if args.collected is not None and (args.recovery_run_dir is not None or args.provenance_out is not None or args.allow_unprocessed):
+                raise InputError("--collected cannot use recovery/provenance/allow-unprocessed; use --run-dir instead")
+            sources = ([args.run_dir] if args.run_dir is not None else [args.collected]) + ([args.recovery_run_dir] if args.recovery_run_dir is not None else [])
             outputs = [destination] + ([args.provenance_out] if args.provenance_out is not None else [])
             if len({str(path.resolve()) for path in outputs}) != len(outputs):
                 raise InputError("Official output and private provenance must be separate files")
@@ -122,7 +143,11 @@ def run(args):
             options = dict(allow_unprocessed=args.allow_unprocessed,
                            served_model_name=args.served_model_name)
             provenance = None
-            if args.provenance_out is not None:
+            if args.collected is not None:
+                bundle = export_collected_submission(records, checklist, read_json(args.collected),
+                    args.team_name, args.model_name, args.model_mode, args.dataset,
+                    served_model_name=args.served_model_name)
+            elif args.provenance_out is not None:
                 bundle, provenance = export_submission_with_provenance(records, checklist,
                     args.run_dir, args.team_name, args.model_name, args.model_mode, args.dataset,
                     recovery_run_dir=args.recovery_run_dir, **options)

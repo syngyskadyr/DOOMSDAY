@@ -183,6 +183,25 @@ def _error(record, state):
             "criteria": [], "score": None, "error": _ERRORS[state]}
 
 
+def _official_result(saved, record, score):
+    """One mapping shared by durable-run and collected-package exports."""
+    if score["status"] != "completed" or score["total_score"] is None or type(score["gross_error"]) is not bool:
+        return _error(record, "unresolved")
+    rows = {row["criterion_id"]: row for row in saved["assessment"]["criteria"]}
+    positions = {message["message_id"]: index for index, message in enumerate(record["transcript"], 1)}
+    criteria = []
+    for criterion_id, code in CRITERION_CODES.items():
+        row = rows[criterion_id]
+        answer = row["answer"]
+        value = {"yes": True, "no": False, "na": None}[answer] if isinstance(answer, str) else int(answer)
+        criteria.append({"criterion_id": code, "value": value,
+                         "rationale": _rationale(row, record),
+                         "evidence_turns": _evidence_turns(row, positions)})
+    return {"conversation_id": record["conversation_id"], "status": "ok",
+            "criteria": criteria, "score": {
+                "final_score": float(score["total_score"]), "critical_flag": score["gross_error"]}}
+
+
 @contextmanager
 def _checked_artifacts():
     try:
@@ -198,6 +217,10 @@ def _snapshot(directory):
     for path in sorted(directory.rglob("*")):
         if path.is_symlink():
             raise InputError("Submission runs must not contain symbolic links")
+        if path == directory / ".lock":
+            # Coordination byte, not an assessment artifact. Windows forbids
+            # reading the region held by our own mandatory run_lock.
+            continue
         if path.is_file():
             with path.open("rb") as stream:
                 result[str(path.relative_to(directory))] = hashlib.file_digest(stream, "sha256").hexdigest()
@@ -354,23 +377,7 @@ def export_submission_with_provenance(records, checklist, run_dir, team_name, mo
                 continue
             saved = read_json(state["result"])
             score = _validated_saved(saved, record, checklist, item)
-            if score["status"] != "completed" or score["total_score"] is None or type(score["gross_error"]) is not bool:
-                results.append(_error(record, "unresolved"))
-                continue
-            rows = {row["criterion_id"]: row for row in saved["assessment"]["criteria"]}
-            positions = {message["message_id"]: index for index, message in enumerate(record["transcript"], 1)}
-            criteria = []
-            for criterion_id, code in CRITERION_CODES.items():
-                row = rows[criterion_id]
-                answer = row["answer"]
-                value = {"yes": True, "no": False, "na": None}[answer] if isinstance(answer, str) else int(answer)
-                criteria.append({"criterion_id": code, "value": value,
-                                 "rationale": _rationale(row, record),
-                                 "evidence_turns": _evidence_turns(row, positions)})
-            results.append({"conversation_id": record["conversation_id"], "status": "ok",
-                            "criteria": criteria, "score": {
-                                "final_score": float(score["total_score"]),
-                                "critical_flag": score["gross_error"]}})
+            results.append(_official_result(saved, record, score))
         if any(_snapshot(path) != snapshots[name] for name, path in runs.items()):
             raise InputError("Submission run artifacts changed during export")
         manifests = {name: {"path": str(path.resolve()),
@@ -395,3 +402,70 @@ def export_submission(records, checklist, run_dir, team_name, model_name,
     return export_submission_with_provenance(records, checklist, run_dir, team_name,
         model_name, model_mode, dataset, allow_unprocessed=allow_unprocessed,
         served_model_name=served_model_name, recovery_run_dir=recovery_run_dir)[0]
+
+
+def export_collected_submission(records, checklist, bundle, team_name, model_name,
+                                model_mode, dataset, *, served_model_name=None):
+    """Consume the unchanged batch-collect cqa-batch-results-1 contract offline.
+
+    Embedded paths are never followed. A bundle has no raw journals/manifest:
+    its manifest_hash is a reference, not independently verified provenance.
+    Failed/incomplete runs must use export_submission(run_dir), since collect
+    intentionally refuses them. Missing IDs are never fabricated as errors.
+    """
+    if not nonempty(team_name) or not nonempty(model_name):
+        raise InputError("Submission requires nonempty team and actual model names")
+    if not isinstance(model_mode, str) or model_mode not in {"local", "external_api", "hybrid"}:
+        raise InputError("Submission model mode must be local, external_api or hybrid")
+    served_name = model_name if served_model_name is None else served_model_name
+    if not nonempty(served_name):
+        raise InputError("Served model name must be nonempty")
+    validate_checklist(checklist)
+    if fingerprint(checklist) != OFFICIAL_CHECKLIST_HASH:
+        raise InputError("Organizer submission requires the unchanged official eight-criterion checklist")
+    source = _dataset_records(records, dataset)
+    with _checked_artifacts():
+        if not isinstance(bundle, dict) or bundle.get("format") != "cqa-batch-results-1":
+            raise InputError("Expected a batch-collect cqa-batch-results-1 package")
+        if bundle.get("organizer_format_verified") is not False or not isinstance(bundle.get("manifest_hash"), str) or re.fullmatch(r"[0-9a-f]{64}", bundle["manifest_hash"]) is None:
+            raise InputError("Invalid collected-package header")
+        saved_results = bundle.get("results")
+        if not isinstance(saved_results, list):
+            raise InputError("Collected package requires a results array")
+        ids = [saved["assessment"]["conversation_id"] for saved in saved_results]
+        expected_ids = {record["conversation_id"] for record in source}
+        if len(ids) != len(set(ids)) or set(ids) != expected_ids:
+            raise InputError("Collected package must contain every source ID exactly once")
+        summary = bundle["summary"]
+        if (summary.get("records") != len(source) or summary.get("complete") is not True
+                or summary.get("ready_for_handoff") is not True
+                or summary.get("needs_review") != 0 or summary.get("not_calculable") != 0
+                or summary.get("counts") != {"validated": len(source), "error": 0, "interrupted": 0, "pending": 0}):
+            raise InputError("Collected summary is incomplete; use --run-dir to export processing errors")
+        summary_rows = summary["items"]
+        summary_ids = [row["conversation_id"] for row in summary_rows]
+        if len(summary_ids) != len(set(summary_ids)) or set(summary_ids) != expected_ids:
+            raise InputError("Collected summary must contain every source ID exactly once")
+        if any(row.get("state") != "validated" for row in summary_rows):
+            raise InputError("Collected summary contains an unvalidated record")
+        by_id = dict(zip(ids, saved_results))
+        summary_by_id = dict(zip(summary_ids, summary_rows))
+        results = []
+        for record in source:
+            saved = by_id[record["conversation_id"]]
+            item = {"dialogue_hash": fingerprint(record),
+                    "prompt_hash": saved["metadata"]["prompt_hash"],
+                    "request_hash": saved["metadata"]["request_hash"]}
+            if any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None for value in item.values()):
+                raise InputError("Collected result lacks valid request identity hashes")
+            _metadata(saved, item, checklist, served_name, success=True)
+            score = _validated_saved(saved, record, checklist, item)
+            result = _official_result(saved, record, score)
+            reported = summary_by_id[record["conversation_id"]]
+            if (result["status"] != "ok" or reported.get("assessment_status") != score["status"]
+                    or fingerprint(reported.get("total_score")) != fingerprint(score["total_score"])):
+                raise InputError("Collected summary differs from validated results; use --run-dir for unresolved records")
+            results.append(result)
+    output = {"schema_version": "1.0", "team_name": team_name,
+              "model": {"mode": model_mode, "name": model_name}, "results": results}
+    return validate_submission(output, source, dataset)
