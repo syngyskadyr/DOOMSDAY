@@ -158,6 +158,10 @@ function resultPanel(ctx, evaluation, jump) {
     panelHeading("Результат оценки", checklist.title + " · версия " + evaluation.checklist_version, statusBadge(evaluation.status)),
     evaluation.import_source?.kind === "official_submission" &&
       notice("Сохранённая оценка из официального DEV-файла. Баллы, объяснения и ссылки на реплики импортированы без повторного запуска модели. Доступно только чтение: для пересмотра нужен полный исходный ответ модели.", "info"),
+    h("p", { class: "muted result-provenance" },
+      "Модель: " + (evaluation.metadata?.model || "не указана сервером") +
+      (evaluation.import_source ? " · импортировано: " : " · ") + dateLabel(evaluation.created_at) +
+      " · критериев: " + checklist.criteria.length),
     h("div", { class: "assessment-summary" },
       h("div", {}, h("span", { class: "field-label" }, "Итоговый балл"), h("strong", { class: "total-score" }, scoreLabel(final.calculation.total_score))),
       h("div", {}, h("span", { class: "field-label" }, "Грубая ошибка"), flagBadge(final.critical_error)),
@@ -184,12 +188,23 @@ function resultPanel(ctx, evaluation, jump) {
 
 export async function dialogueView(ctx) {
   const { id, query, signal } = ctx;
-  const [dialogue, versions] = await Promise.all([
-    api.conversation(id, signal), api.checklists(signal), ctx.health,
+  const [dialogueResult, versionsResult] = await Promise.allSettled([
+    api.conversation(id, signal), api.checklists(signal),
   ]);
+  if (dialogueResult.status === "rejected") throw dialogueResult.reason;
+  const dialogue = dialogueResult.value;
+  const versions = versionsResult.status === "fulfilled" ? versionsResult.value : { items: [], current_version: "" };
   const selectedEvaluation = query.get("evaluation") || dialogue.latest_evaluation_id;
-  let evaluation = selectedEvaluation ? await api.evaluation(selectedEvaluation, signal) : null;
-  if (evaluation && evaluation.conversation_id !== id) throw new Error("Эта оценка относится к другому диалогу.");
+  let evaluation = null;
+  let evaluationError = null;
+  async function loadEvaluation() {
+    const result = await api.evaluation(selectedEvaluation, signal);
+    if (result.conversation_id !== id) throw new Error("Эта оценка относится к другому диалогу.");
+    return result;
+  }
+  if (selectedEvaluation) {
+    try { evaluation = await loadEvaluation(); } catch (error) { evaluationError = error; }
+  }
   const transcript = transcriptView(dialogue, ctx);
   const jobPanel = h("div", { class: "view job-panel" });
   const jobStatus = h("p", { class: "sr-only", role: "status" });
@@ -209,7 +224,7 @@ export async function dialogueView(ctx) {
       return entry.checklist_version === version.value && isPending(entry.status);
     });
     const gate = evaluationGate(ctx.readiness.api, ctx.readiness.model, { submitting, active });
-    launch.disabled = gate.disabled;
+    launch.disabled = gate.disabled || !version.value;
     launch.title = gate.reason;
     launch.replaceChildren(icon("bolt", 16), submitting ? "Запуск оценки…" : "Оценить");
     readinessMessage.replaceChildren(notice(gate.reason, gate.disabled && !submitting && !active ? "warning" : "info"));
@@ -222,7 +237,8 @@ export async function dialogueView(ctx) {
     if (signal.aborted || polling) return;
     polling = true;
     try {
-      evaluation = await api.evaluation(selectedEvaluation, signal);
+      evaluation = await loadEvaluation();
+      evaluationError = null;
       if (!signal.aborted) showResult();
     } catch (error) {
       if (signal.aborted) return;
@@ -241,8 +257,12 @@ export async function dialogueView(ctx) {
       return;
     }
     displayedStatus = status;
-    if (evaluation) jobStatus.textContent = statuses[status].label;
-    if (!evaluation) {
+    if (evaluation) jobStatus.textContent = statuses[status]?.label ?? "Неизвестный статус";
+    if (evaluationError) {
+      jobPanel.replaceChildren(h("section", { class: "panel failure-panel" },
+        panelHeading("Не удалось загрузить оценку", "Транскрипт доступен. Повторная загрузка не запускает модель."),
+        errorNotice(evaluationError), button("Загрузить оценку", { onclick: poll })));
+    } else if (!evaluation) {
       jobPanel.replaceChildren(h("section", { class: "panel" },
         emptyState("Оценок пока нет", "Выберите версию чек-листа и нажмите «Оценить». Здесь появятся баллы, объяснения и доказательства.", null, "checklist")));
     } else if (isPending(evaluation.status)) {
@@ -256,7 +276,13 @@ export async function dialogueView(ctx) {
         panelHeading("Оценка завершилась ошибкой", "Чек-лист версии " + evaluation.checklist_version),
         errorNotice(evaluation.error || { message: "Оценщик не вернул результат." })));
     } else if (evaluation.final) {
-      jobPanel.replaceChildren(resultPanel(ctx, evaluation, transcript.jump));
+      try {
+        jobPanel.replaceChildren(resultPanel(ctx, evaluation, transcript.jump));
+      } catch {
+        jobPanel.replaceChildren(notice("Сервер вернул неполную оценку. Транскрипт доступен; обновите данные или проверьте результат на сервере.", "danger"));
+      }
+    } else {
+      jobPanel.replaceChildren(notice("Результат оценки отсутствует в ответе сервера. Обновите данные или проверьте состояние на сервере.", "warning"));
     }
   }
 
@@ -300,6 +326,7 @@ export async function dialogueView(ctx) {
           panelHeading("Оценивание", "Выберите версию правил для этого диалога",
             linkButton("К чек-листам", checklistHref({ dialogue: id }), { kind: "quiet small", glyph: "checklist" })),
           startForm, readinessMessage,
+          versionsResult.status === "rejected" && errorNotice(versionsResult.reason),
           launchMessages, dialogue.evaluation_history.length > 0 && field("История оценок", history)),
         jobStatus, jobPanel)));
 }

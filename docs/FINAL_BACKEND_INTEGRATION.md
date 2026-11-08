@@ -1,5 +1,43 @@
 # Final backend integration — 2026-11-08
 
+## Jury demo with saved real Qwen results (no GPU)
+
+The urgent follow-up adds `--results`: it imports the existing official DEV
+submission into SQLite and serves 64 completed assessments plus one failed record
+through the existing `/api` endpoints. Startup is idempotent: the next import
+skips all 65 records, preserving IDs, timestamps and history. All eight original
+criterion values, rationale, evidence_turns, score and error are preserved in
+`import_source.result`; display evidence links point to the real DEV messages.
+Missing raw-model fields are not invented. Imported evaluations are read-only;
+native model evaluations retain the existing appeal workflow.
+
+Exact launch in the local integration worktree:
+
+```powershell
+Set-Location 'C:\Users\Человечина\AppData\Local\Programs\Microsoft VS Code\DOOMSDAY\artifacts\worktrees\final-backend'
+$env:PYTHONPATH = "$PWD/src"
+$env:LLM_BASE_URL = ''
+$env:LLM_MODEL = ''
+& '../../../.venv/Scripts/python.exe' -m backend --host 127.0.0.1 --port 8000 --dev codex_context/data/dev.json --results results/dev/results.json --db backend/data/demo.sqlite3 --no-env-file
+```
+
+Open `http://127.0.0.1:8000/`; no tunnel or model service is required for saved
+results. The API is `http://127.0.0.1:8000/api`, docs at `/docs`. The actual demo
+database is local/ignored: `backend/data/demo.sqlite3`. Do not run a second server
+on the same port or database. The real DEV source is also local/ignored.
+
+Verified after combining frontend commit `7adfe11` with the importer: **73 backend
+tests**, **21 frontend unit tests**, frontend build, and **131 real HTTP requests
+using the actual frontend api.js** all pass. The served root returns 200 and the
+served API/dialogue JavaScript matches this checkout. There are no mocked HTTP
+responses, invented transcripts or model POST requests in that served-app check.
+All saved results and evidence links were compared with the official JSON and
+the actual messages returned by FastAPI. Source/reserve SHA-256 is unchanged.
+
+A new visual browser check was blocked by Computer Use because it could not
+reliably determine the Windows browser URL. This is not reported as a browser
+pass; the previously reported six frontend browser scenarios were not rerun here.
+
 ## Git and scope
 
 Integration branch: `integration/final-backend`, based on `origin/main` at
