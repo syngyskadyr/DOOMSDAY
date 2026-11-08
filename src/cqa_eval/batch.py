@@ -198,12 +198,14 @@ def _summary(directory, records, checklist, report, *, states=None):
 
 def run_batch(records, checklist, settings, directory, *, context_window, margin=512,
               token_counter=None, resume=False, retry_errors=False, retry_interrupted=False,
-              limit=None, progress=None):
+              limit=None, progress=None, initialize_only=False):
     settings.validate()
     if settings.api_style != "chat_completions":
         raise InputError("Batch token preflight currently requires chat_completions")
     if limit is not None and limit <= 0:
         raise InputError("--limit must be positive")
+    if initialize_only and (resume or retry_errors or retry_interrupted or limit is not None):
+        raise InputError("Initialization requires a new run without resume, retry or limit options")
     if (retry_errors or retry_interrupted) and not resume:
         raise InputError("Retry flags require --resume")
     report = preflight(records, checklist, settings, context_window=context_window,
@@ -233,6 +235,11 @@ def run_batch(records, checklist, settings, directory, *, context_window, margin
             atomic_write(manifest, identity)
         # Validate all existing successes before issuing any further API calls.
         status = _summary(directory, records, checklist, report)
+        if initialize_only:
+            # Persist every input as pending before the inference window opens.
+            # Normal resume uses the same manifest and existing validation.
+            atomic_write(directory / "summary.json", status)
+            return status
         processed = 0
         for index, (dialogue, item, current) in enumerate(zip(records, report["items"], status["items"]), 1):
             state = current["state"]

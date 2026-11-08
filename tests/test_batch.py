@@ -81,6 +81,83 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(mock.call_count, 3)
         self.assertEqual(before, (self.directory / "records/0001/attempt-0001/result.json").read_bytes())
 
+    def test_initialize_persists_pending_without_calls_then_resume_once_per_input(self):
+        counter = Mock(return_value=100, chat_template_kwargs={})
+        self.options["token_counter"] = counter
+        progress = Mock()
+        with patch("cqa_eval.evaluator._http_post") as post:
+            status = self.run_batch(initialize_only=True, progress=progress)
+            post.assert_not_called()
+        self.assertEqual(counter.call_count, len(self.records))
+        progress.assert_not_called()
+        self.assertEqual(status["counts"], {"validated": 0, "error": 0, "interrupted": 0, "pending": 3})
+        self.assertFalse(status["complete"])
+        self.assertFalse(status["ready_for_handoff"])
+        self.assertEqual(status["api_attempts_started"], 0)
+        self.assertEqual(status["api_attempts_finished"], 0)
+        self.assertEqual(read_json(self.directory / "summary.json")["counts"], status["counts"])
+        self.assertFalse((self.directory / "records").exists())
+        manifest = (self.directory / "manifest.json").read_bytes()
+        with self.assertRaises(InputError):
+            collect_results(self.records, self.checklist, self.directory)
+        with patch("cqa_eval.evaluator._http_post", side_effect=self.envelope) as post:
+            self.assertTrue(self.run_batch(resume=True)["complete"])
+            self.assertTrue(self.run_batch(resume=True)["complete"])
+        self.assertEqual(post.call_count, len(self.records))
+        called_ids = [json.loads(call.args[1]["messages"][1]["content"])["conversation"]["conversation_id"]
+                      for call in post.call_args_list]
+        self.assertEqual(called_ids, [record["conversation_id"] for record in self.records])
+        self.assertEqual(len(list(self.directory.glob("records/*/attempt-*"))), len(self.records))
+        self.assertEqual(manifest, (self.directory / "manifest.json").read_bytes())
+
+    def test_initialized_ten_inputs_export_only_as_explicit_processing_errors(self):
+        from cqa_eval.submission import export_submission
+        records = [dict(deepcopy(self.records[0]), conversation_id=f"synthetic-control-{i}", channel="agent chat")
+                   for i in range(10)]
+        with patch("cqa_eval.evaluator._http_post") as post:
+            status = run_batch(records, self.checklist, self.settings, self.directory,
+                               initialize_only=True, **self.options)
+            self.assertEqual(status["counts"]["pending"], 10)
+            with self.assertRaises(InputError):
+                collect_results(records, self.checklist, self.directory)
+            with self.assertRaisesRegex(InputError, "unprocessed"):
+                export_submission(records, self.checklist, self.directory, "Synthetic team",
+                                  self.settings.model, "local", "prod")
+            exported = export_submission(records, self.checklist, self.directory, "Synthetic team",
+                                         self.settings.model, "local", "prod", allow_unprocessed=True)
+            post.assert_not_called()
+        self.assertEqual([row["conversation_id"] for row in exported["results"]],
+                         [record["conversation_id"] for record in records])
+        self.assertEqual(len(exported["results"]), 10)
+        for row in exported["results"]:
+            self.assertEqual(row["status"], "error")
+            self.assertEqual(row["criteria"], [])
+            self.assertIsNone(row["score"])
+        self.assertEqual(read_json(self.directory / "summary.json")["counts"]["pending"], 10)
+
+    def test_initialize_rejects_live_options_existing_runs_and_failed_preflight(self):
+        for options in ({"resume": True}, {"retry_errors": True},
+                        {"retry_interrupted": True}, {"limit": 1}):
+            with self.subTest(options=options), patch("cqa_eval.evaluator._http_post") as post:
+                with self.assertRaises(InputError):
+                    self.run_batch(initialize_only=True, **options)
+                post.assert_not_called()
+                self.assertFalse(self.directory.exists())
+        for counter in (None, lambda prepared: 99999):
+            self.options["token_counter"] = counter
+            with patch("cqa_eval.evaluator._http_post") as post, self.assertRaises(InputError):
+                self.run_batch(initialize_only=True)
+            post.assert_not_called()
+            self.assertFalse(self.directory.exists())
+        self.options["token_counter"] = lambda prepared: 100
+        with patch("cqa_eval.evaluator._http_post") as post:
+            self.run_batch(initialize_only=True)
+            before = (self.directory / "manifest.json").read_bytes()
+            with self.assertRaisesRegex(InputError, "Run exists"):
+                self.run_batch(initialize_only=True)
+            post.assert_not_called()
+        self.assertEqual(before, (self.directory / "manifest.json").read_bytes())
+
     def test_interrupt_preserves_success_and_requires_explicit_retry(self):
         calls = 0
         def post(*args):
@@ -348,6 +425,33 @@ class BatchTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()) as output:
             self.assertEqual(main(args), 2)
         self.assertIn("Expected 10 records", output.getvalue())
+
+    def test_cli_initialize_is_successful_offline_and_rejects_incompatible_options(self):
+        source = Path(self.temp.name) / "input.json"
+        atomic_write(source, {"isSuccess": True, "data": {"records": self.records}})
+        args = ["batch", "--input", str(source), "--expected-count", "3", "--run-dir", str(self.directory),
+                "--context-window", "10000", "--max-output-tokens", "1024", "--tokenizer", self.temp.name,
+                "--initialize"]
+        for extra in (["--preflight"], ["--resume"], ["--limit", "1"],
+                      ["--retry-errors"], ["--retry-interrupted"]):
+            with self.subTest(extra=extra), patch("cqa_eval.cli.load_token_counter") as loader, \
+                    patch("cqa_eval.evaluator._http_post") as post, redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(main(args + extra), 2)
+                self.assertIn("--initialize cannot be combined", output.getvalue())
+                loader.assert_not_called()
+                post.assert_not_called()
+                self.assertFalse(self.directory.exists())
+        with patch("cqa_eval.cli.Settings.from_env", return_value=self.settings), \
+                patch("cqa_eval.cli.load_token_counter", return_value=lambda prepared: 100) as loader, \
+                patch("cqa_eval.evaluator._http_post") as post, redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(main(args), 0)
+        loader.assert_called_once_with(Path(self.temp.name), chat_template_kwargs=None)
+        post.assert_not_called()
+        initialized = json.loads(output.getvalue())
+        self.assertEqual(initialized["counts"]["pending"], 3)
+        self.assertFalse(initialized["ready_for_handoff"])
+        self.assertEqual(initialized["api_attempts_started"], 0)
+        self.assertFalse((self.directory / "records").exists())
 
     def test_cli_batch_and_collect_round_trip(self):
         source = Path(self.temp.name) / "input.json"

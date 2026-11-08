@@ -16,7 +16,7 @@ from cqa_eval.core import calculate_score
 from cqa_eval.data import InputError, fingerprint, normalize_dialogue, read_json
 from cqa_eval.submission import (
     CRITERION_CODES, OFFICIAL_CHECKLIST_HASH, export_submission,
-    submission_schema, validate_submission,
+    export_submission_with_provenance, submission_schema, validate_submission,
 )
 from cqa_eval.validation import validate_response
 
@@ -51,6 +51,7 @@ class SubmissionTests(unittest.TestCase):
     def write_manifest(self):
         atomic_write(self.directory / "manifest.json", {
             "format": "cqa-batch-1", "model": self.model,
+            "api_style": "chat_completions", "structured_output": "json_schema",
             "checklist_hash": fingerprint(self.checklist),
             "preflight": {"records": len(self.records), "items": self.items}})
 
@@ -402,6 +403,181 @@ class SubmissionTests(unittest.TestCase):
         env.assert_not_called()
         post.assert_not_called()
         self.assertFalse(destination.exists())
+
+    def recovery(self, failed=(0, 3, 7), recovery_errors=()):
+        """Real durable writer, invented provider responses, no external calls."""
+        from cqa_eval.batch import run_batch
+        from cqa_eval.evaluator import Settings
+        for index in range(len(self.records)):
+            self.write(index, "error" if index in failed else "ok")
+        target = Path(self.temp.name) / "recovery"
+        selected = [self.records[index] for index in failed]
+        settings = Settings(api_key="invented-not-a-secret", base_url="https://example.test/v1",
+            model=self.model, api_style="chat_completions", max_output_tokens=1024, max_attempts=1)
+
+        def response(url, body, settings):
+            cid = json.loads(body["messages"][1]["content"])["conversation"]["conversation_id"]
+            index = next(i for i, row in enumerate(self.records) if row["conversation_id"] == cid)
+            assessment = self.assessment(index)
+            if index in recovery_errors:
+                # A complete JSON response deliberately rejected by the actual validator.
+                assessment["criteria"][-1]["evidence_message_ids"] = []
+            return {"model": self.model, "choices": [{"finish_reason": "stop", "message": {
+                "content": json.dumps(assessment)}}]}
+
+        with patch("cqa_eval.evaluator._http_post", side_effect=response) as post:
+            run_batch(selected, self.checklist, settings, target, context_window=10000,
+                      token_counter=lambda prepared: 100)
+        self.assertEqual(post.call_count, len(failed))
+        return target
+
+    def test_sparse_recovery_preserves_successes_and_separate_provenance(self):
+        recovery = self.recovery()
+        before = {str(p): p.read_bytes() for root in (self.directory, recovery) for p in root.rglob("*.json")}
+        original = self.export()
+        with patch("cqa_eval.evaluator._http_post") as post:
+            output, audit = export_submission_with_provenance(self.records, self.checklist,
+                self.directory, "Invented team", self.model, "local", "prod", recovery_run_dir=recovery)
+            post.assert_not_called()
+        self.assertEqual(sum(row["status"] == "error" for row in output["results"]), 0)
+        for i in range(10):
+            if i not in (0, 3, 7):
+                self.assertEqual(output["results"][i], original["results"][i])
+        self.assertEqual([row["conversation_id"] for row in audit["results"] if row["source"] == "recovery"],
+                         [self.records[i]["conversation_id"] for i in (0, 3, 7)])
+        self.assertEqual(audit["submission_hash"], fingerprint(output))
+        self.assertEqual(set(audit["runs"]), {"baseline", "recovery"})
+        self.assertTrue(audit["runs"]["recovery"]["artifact_sha256"])
+        self.assertNotIn("PRIVATE", json.dumps(audit))
+        self.assertEqual(before, {str(p): p.read_bytes() for root in (self.directory, recovery) for p in root.rglob("*.json")})
+
+    def test_failed_recovery_stays_explicit_error_without_zero_or_na(self):
+        recovery = self.recovery(recovery_errors=(3,))
+        output = self.export(recovery_run_dir=recovery)
+        errors = [row for row in output["results"] if row["status"] == "error"]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["conversation_id"], self.records[3]["conversation_id"])
+        self.assertEqual(errors[0]["criteria"], [])
+        self.assertIsNone(errors[0]["score"])
+
+    def test_recovery_rejects_wrong_coverage_data_model_and_multiple_attempts(self):
+        recovery = self.recovery()
+        path = recovery / "manifest.json"
+        original = read_json(path)
+        for kind in ("success_id", "missing_id", "order", "data", "model", "retry_limit"):
+            with self.subTest(kind=kind):
+                value = deepcopy(original)
+                if kind == "success_id": value["preflight"]["items"][0] = deepcopy(self.items[1])
+                if kind == "missing_id":
+                    value["preflight"]["items"].pop()
+                    value["preflight"]["records"] -= 1
+                if kind == "order": value["preflight"]["items"].reverse()
+                if kind == "data": value["preflight"]["items"][0]["dialogue_hash"] = "0" * 64
+                if kind == "model": value["model"] = "different-model"
+                if kind == "retry_limit": value["max_attempts"] = 2
+                atomic_write(path, value)
+                with self.assertRaises(InputError): self.export(recovery_run_dir=recovery)
+        atomic_write(path, original)
+        import shutil
+        shutil.copytree(recovery / "records/0001/attempt-0001", recovery / "records/0001/attempt-0002")
+        with self.assertRaisesRegex(InputError, "one fresh attempt"):
+            self.export(recovery_run_dir=recovery)
+        shutil.rmtree(recovery / "records/0001/attempt-0001")
+        with self.assertRaisesRegex(InputError, "selected later attempt"):
+            self.export(recovery_run_dir=recovery)
+
+    def test_recovery_never_accepts_manual_json_repair_or_mixed_prompt(self):
+        recovery = self.recovery()
+        path = recovery / "records/0001/attempt-0001/result.json"
+        original = read_json(path)
+        saved = deepcopy(original)
+        saved["assessment"]["criteria"][0]["reason"] = "Manual repair must not replace the original model JSON."
+        atomic_write(path, saved)
+        with self.assertRaisesRegex(InputError, "original provider response"):
+            self.export(recovery_run_dir=recovery)
+        atomic_write(path, original)
+        saved = deepcopy(original)
+        saved["metadata"]["instruction_hash"] = "0" * 64
+        atomic_write(path, saved)
+        with self.assertRaisesRegex(InputError, "mixes instruction"):
+            self.export(recovery_run_dir=recovery)
+
+    def test_recovery_rejects_missing_or_inconsistent_journals_and_calls(self):
+        recovery = self.recovery()
+        path = recovery / "records/0001/attempt-0001/result.json"
+        original = read_json(path)
+        for field, value in (("call_count", 2), ("retry_count", 1), ("instruction_hash", None)):
+            with self.subTest(field=field):
+                saved = deepcopy(original)
+                saved["metadata"][field] = value
+                atomic_write(path, saved)
+                with self.assertRaises(InputError): self.export(recovery_run_dir=recovery)
+        atomic_write(path, original)
+        journal = recovery / "records/0001/attempt-0001/response_received-01.json"
+        journal.unlink()
+        with self.assertRaisesRegex(InputError, "original provider response journal"):
+            self.export(recovery_run_dir=recovery)
+
+    def test_cli_recovery_requires_private_audit_and_writes_new_files_only(self):
+        from cqa_eval.cli import main
+        recovery = self.recovery()
+        destination = Path(self.temp.name) / "export/results.json"
+        audit = Path(self.temp.name) / "private/provenance.json"
+        args = self.cli_args(destination) + ["--recovery-run-dir", str(recovery)]
+        with redirect_stdout(io.StringIO()) as stream:
+            self.assertEqual(main(args), 2)
+        self.assertIn("--provenance-out", json.loads(stream.getvalue())["error"])
+        self.assertFalse(destination.exists())
+        with patch("cqa_eval.evaluator._http_post") as post, redirect_stdout(io.StringIO()):
+            self.assertEqual(main(args + ["--provenance-out", str(audit)]), 0)
+            post.assert_not_called()
+        self.assertEqual(read_json(audit)["submission_hash"], fingerprint(read_json(destination)))
+        before = destination.read_bytes(), audit.read_bytes()
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(main(args + ["--provenance-out", str(audit)]), 2)
+        self.assertEqual(before, (destination.read_bytes(), audit.read_bytes()))
+        if os.name != "nt":self.assertEqual(audit.stat().st_mode & 0o777, 0o600)
+
+    def test_interrupted_or_pending_recovery_is_never_a_score(self):
+        recovery = self.recovery()
+        folder = recovery / "records/0001/attempt-0001"
+        for name in ("result.json", "response_received-01.json", "attempt_finished-01.json"):
+            (folder / name).unlink()
+        output, audit = export_submission_with_provenance(self.records, self.checklist,
+            self.directory, "Invented team", self.model, "local", "prod", recovery_run_dir=recovery)
+        self.assertEqual(output["results"][0]["status"], "error")
+        self.assertIsNone(output["results"][0]["score"])
+        self.assertEqual(audit["results"][0]["state"], "interrupted")
+        self.assertIsNone(audit["results"][0]["api_calls_in_selected_attempt"])
+        (folder / "attempt_started-01.json").unlink()
+        output = self.export(recovery_run_dir=recovery)
+        self.assertEqual(output["results"][0]["status"], "error")
+        import shutil
+        shutil.rmtree(folder)
+        with self.assertRaisesRegex(InputError, "allow_unprocessed"):
+            self.export(recovery_run_dir=recovery)
+        output = self.export(recovery_run_dir=recovery, allow_unprocessed=True)
+        self.assertEqual(output["results"][0]["status"], "error")
+        self.assertIsNone(output["results"][0]["score"])
+
+    def test_recovery_cannot_replace_an_already_successful_source(self):
+        self.complete()
+        with self.assertRaisesRegex(InputError, "separate directories"):
+            self.export(recovery_run_dir=self.directory)
+        target = Path(self.temp.name) / "unnecessary-recovery"
+        atomic_write(target / "manifest.json", {})
+        with self.assertRaisesRegex(InputError, "successes cannot be replaced"):
+            self.export(recovery_run_dir=target)
+
+    def test_cli_export_cannot_write_into_immutable_run(self):
+        from cqa_eval.cli import main
+        recovery = self.recovery()
+        destination = Path(self.temp.name) / "export/results.json"
+        for audit in (recovery / "new-audit.json", self.directory / "new-audit.json", destination):
+            with self.subTest(path=audit), redirect_stdout(io.StringIO()):
+                self.assertEqual(main(self.cli_args(destination) + ["--recovery-run-dir", str(recovery),
+                    "--provenance-out", str(audit)]), 2)
+                self.assertFalse(destination.exists())
 
 
 if __name__ == "__main__":

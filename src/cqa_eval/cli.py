@@ -9,7 +9,7 @@ from .core import calculate_score
 from .data import InputError, dumps, load_dev, normalize_dialogue, parse_json, read_json, select_dialogue, summary
 from .evaluator import EvaluationError, PersistenceError, Settings, evaluate_dialogue, prepare_request
 from .batch import atomic_write, collect_results, load_token_counter, preflight, run_batch, validate_chat_template_kwargs
-from .quality import compare_predictions, prepare_review
+from .quality import compare_paired_runs, compare_predictions, prepare_review
 from .validation import extract_evidence, validate_response
 
 
@@ -48,8 +48,11 @@ def parser():
             cmd.add_argument("--served-model-name", help="Explicit inference alias, if different from --model-name")
             cmd.add_argument("--model-mode", choices=["local", "external_api", "hybrid"], default="local")
             cmd.add_argument("--allow-unprocessed", action="store_true", help="Explicitly emit pending inputs as errors")
+            cmd.add_argument("--recovery-run-dir", type=Path, help="One fresh attempt for every original processing-error ID; never replaces a success")
+            cmd.add_argument("--provenance-out", type=Path, help="NEW private composition audit outside source runs; required with recovery")
         if name == "batch":
             cmd.add_argument("--preflight", action="store_true", help="Inspect all requests offline; never calls API")
+            cmd.add_argument("--initialize", action="store_true", help="Create a new manifest and pending summary after local tokenizer preflight; never calls API")
             cmd.add_argument("--tokenizer", type=Path, help="Local tokenizer directory matching the serving model/template")
             cmd.add_argument("--chat-template-kwargs", help="JSON object matching server template defaults, e.g. enable_thinking=false; requires --tokenizer")
             cmd.add_argument("--context-window", type=int, required=True, help="Actual server max-model-len")
@@ -60,10 +63,14 @@ def parser():
             cmd.add_argument("--retry-interrupted", action="store_true", help="May repeat an already paid in-flight call")
             cmd.add_argument("--limit", type=int, help="Limit newly processed dialogues, e.g. smoke=1")
         if name == "eval":
-            cmd.add_argument("mode", choices=["prepare", "compare"])
+            cmd.add_argument("mode", choices=["prepare", "compare", "paired"])
             cmd.add_argument("--ids", nargs="+", help="Prepare: explicit IDs; default five review-template cases")
             cmd.add_argument("--labels", type=Path, help="Compare: reviewed labels (required)")
             cmd.add_argument("--predictions", nargs="*", type=Path, default=[], help="Saved prediction/error files")
+            cmd.add_argument("--baseline-run-dir", type=Path, help="Paired: frozen baseline durable batch directory")
+            cmd.add_argument("--candidate-run-dir", type=Path, help="Paired: candidate durable batch directory")
+            cmd.add_argument("--baseline-provenance", type=Path, help="Paired: explicit baseline serving provenance JSON")
+            cmd.add_argument("--candidate-provenance", type=Path, help="Paired: explicit candidate serving provenance JSON")
     return p
 
 
@@ -95,16 +102,38 @@ def run(args):
         if args.expected_count is not None and len(records) != args.expected_count:
             raise InputError(f"Expected {args.expected_count} records, found {len(records)}")
         if args.command == "export-results":
-            from .submission import export_submission
+            from .submission import export_submission, export_submission_with_provenance
             if args.dataset == "prod" and args.dev is None:
                 raise InputError("PROD export requires an explicit --input; DEV is never substituted")
             destination = args.out or Path("results") / args.dataset / "results.json"
             if destination.exists():
                 raise InputError("Submission destination already exists; choose a new file or preserve it first")
-            bundle = export_submission(records, checklist, args.run_dir, args.team_name,
-                                       args.model_name, args.model_mode, args.dataset,
-                                       allow_unprocessed=args.allow_unprocessed,
-                                       served_model_name=args.served_model_name)
+            if args.recovery_run_dir is not None and args.provenance_out is None:
+                raise InputError("Recovery export requires --provenance-out for separate source identities")
+            sources = [args.run_dir] + ([args.recovery_run_dir] if args.recovery_run_dir is not None else [])
+            outputs = [destination] + ([args.provenance_out] if args.provenance_out is not None else [])
+            if len({str(path.resolve()) for path in outputs}) != len(outputs):
+                raise InputError("Official output and private provenance must be separate files")
+            for output in outputs:
+                if output.exists():
+                    raise InputError("Export destination already exists; choose new files")
+                if any(output.resolve().is_relative_to(source.resolve()) for source in sources):
+                    raise InputError("Export outputs must be outside immutable source runs")
+            options = dict(allow_unprocessed=args.allow_unprocessed,
+                           served_model_name=args.served_model_name)
+            provenance = None
+            if args.provenance_out is not None:
+                bundle, provenance = export_submission_with_provenance(records, checklist,
+                    args.run_dir, args.team_name, args.model_name, args.model_mode, args.dataset,
+                    recovery_run_dir=args.recovery_run_dir, **options)
+            else:
+                bundle = export_submission(records, checklist, args.run_dir, args.team_name,
+                    args.model_name, args.model_mode, args.dataset, **options)
+            if provenance is not None:
+                args.provenance_out.parent.mkdir(parents=True, exist_ok=True)
+                descriptor = os.open(args.provenance_out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                    stream.write(dumps(provenance, indent=2) + "\n")
             encoded = dumps(bundle, indent=2) + "\n"
             destination.parent.mkdir(parents=True, exist_ok=True)
             descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -113,7 +142,8 @@ def run(args):
             args.out = None
             return {"exported": len(bundle["results"]), "dataset": args.dataset,
                     "errors": sum(row["status"] == "error" for row in bundle["results"]),
-                    "path": str(destination), "schema_version": bundle["schema_version"]}
+                    "path": str(destination), "schema_version": bundle["schema_version"],
+                    "provenance_path": str(args.provenance_out) if provenance is not None else None}
         if args.command == "batch-collect":
             if not args.out or args.out.exists():
                 raise InputError("batch-collect requires --out pointing to a NEW file")
@@ -122,6 +152,9 @@ def run(args):
             # main must not write the output a second time.
             args.out = None
             return {"collected": len(bundle["results"]), "organizer_format_verified": False}
+        if args.initialize and (args.preflight or args.resume or args.retry_errors or
+                                args.retry_interrupted or args.limit is not None):
+            raise InputError("--initialize cannot be combined with --preflight, --resume, retry flags or --limit")
         settings = replace(Settings.from_env(), max_output_tokens=args.max_output_tokens)
         settings.validate(require_complete=False)
         template_kwargs = None
@@ -134,10 +167,11 @@ def run(args):
         if args.preflight:
             return preflight(records, checklist, settings, **options)
         if args.out:
-            raise InputError("Live batch writes into --run-dir; omit --out")
+            raise InputError("Batch writes into --run-dir; omit --out")
         return run_batch(records, checklist, settings, args.run_dir, **options,
                          resume=args.resume, retry_errors=args.retry_errors,
                          retry_interrupted=args.retry_interrupted, limit=args.limit,
+                         initialize_only=args.initialize,
                          progress=lambda value: print(dumps(value), file=sys.stderr, flush=True))
     if args.command == "inspect-dev":
         result = summary(records)
@@ -152,6 +186,34 @@ def run(args):
             return prepare_review(records, checklist, ids)
         if not args.labels:
             raise InputError("eval compare requires --labels")
+        if args.mode == "paired":
+            if not all((args.baseline_run_dir, args.candidate_run_dir, args.baseline_provenance, args.candidate_provenance)):
+                raise InputError("eval paired requires --baseline-run-dir, --candidate-run-dir, --baseline-provenance and --candidate-provenance")
+            if args.predictions:
+                raise InputError("eval paired reads complete run directories; omit --predictions")
+            if args.out:
+                if args.out.exists():
+                    raise InputError("Paired report destination already exists; choose a new file")
+                destination = args.out.resolve()
+                if any(destination.is_relative_to(directory.resolve()) for directory in (args.baseline_run_dir, args.candidate_run_dir)):
+                    raise InputError("Paired reports must be saved outside immutable run directories")
+            result = compare_paired_runs(records, checklist, read_json(args.labels),
+                args.baseline_run_dir, args.candidate_run_dir,
+                read_json(args.baseline_provenance), read_json(args.candidate_provenance))
+            if args.out:
+                destination = args.out
+                encoded = dumps(result, indent=2) + "\n"
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                    stream.write(encoded)
+                args.out = None
+                return {"compared": result["requested"], "reviewed_records": result["reviewed_records"],
+                        "quality_metrics_available": result["paired_quality_metrics"] is not None,
+                        "baseline_processing_error_rate": result["baseline"]["processing_error_rate"],
+                        "candidate_processing_error_rate": result["candidate"]["processing_error_rate"],
+                        "path": str(destination)}
+            return result
         predictions = [read_json(path) for path in args.predictions]
         return compare_predictions(records, checklist, read_json(args.labels), predictions)
     dialogue = _dialogue(args, records)
@@ -196,6 +258,8 @@ def main(argv=None):
         result = run(args)
         _write(result, args.out)
         if args.command == "batch":
+            if args.initialize:
+                return 0  # Pending is the successful outcome of offline initialization.
             return 0 if result.get("ready", result.get("ready_for_handoff", False)) else 2
         return 0
     except (InputError, EvaluationError, PersistenceError) as exc:

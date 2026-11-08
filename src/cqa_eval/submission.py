@@ -6,10 +6,11 @@ Rationales are retained for review; source evidence objects and recordings are
 never copied into the submission.
 """
 from collections import Counter
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from decimal import Decimal
 from importlib.resources import files
 from pathlib import Path
+import hashlib
 import re
 
 from jsonschema import Draft202012Validator
@@ -17,6 +18,7 @@ from jsonschema import Draft202012Validator
 from .batch import _record_state, _validated_saved, run_lock
 from .config import nonempty, validate_checklist
 from .data import InputError, fingerprint, normalize_dialogue, parse_json, read_json
+from .evaluator import _text
 
 
 CRITERION_CODES = {
@@ -190,10 +192,86 @@ def _checked_artifacts():
         raise InputError("Saved batch artifacts are incomplete or malformed") from None
 
 
-def export_submission(records, checklist, run_dir, team_name, model_name,
+def _snapshot(directory):
+    """Bind provenance to bytes, without copying transcript/provider content."""
+    result = {}
+    for path in sorted(directory.rglob("*")):
+        if path.is_symlink():
+            raise InputError("Submission runs must not contain symbolic links")
+        if path.is_file():
+            with path.open("rb") as stream:
+                result[str(path.relative_to(directory))] = hashlib.file_digest(stream, "sha256").hexdigest()
+    return result
+
+
+def _selected_provenance(directory, state):
+    attempts = sorted(directory.glob("attempt-*")) if directory.exists() else []
+    selected = Path(state["result"]) if state["state"] == "validated" else (
+        attempts[-1] / "error.json" if attempts and (attempts[-1] / "error.json").is_file() else None)
+    saved = read_json(selected) if selected else {}
+    metadata = saved.get("metadata", {})
+    return {"attempt_directories": len(attempts),
+            "selected_file": str(selected.relative_to(directory)) if selected else None,
+            "selected_sha256": hashlib.sha256(selected.read_bytes()).hexdigest() if selected else None,
+            "instruction_hash": metadata.get("instruction_hash"),
+            "prompt_hash": metadata.get("prompt_hash"), "request_hash": metadata.get("request_hash"),
+            "api_calls_in_selected_attempt": metadata.get("call_count"),
+            "state": state["state"]}
+
+
+def _recovery_attempt(directory, record, item, checklist, model_name, manifest):
+    """A recovery is one new observation, never best-of-N or JSON repair."""
+    _attempts(directory, record, item, checklist, model_name)
+    attempts = sorted(directory.glob("attempt-*")) if directory.exists() else []
+    if len(attempts) > 1:
+        raise InputError("Recovery requires at most one fresh attempt per failed record")
+    if not attempts:
+        return None
+    attempt = attempts[0]
+    if attempt.name != "attempt-0001":
+        raise InputError("Recovery requires the first fresh attempt, not a selected later attempt")
+    starts = sorted(attempt.glob("attempt_started-*.json"))
+    finishes = sorted(attempt.glob("attempt_finished-*.json"))
+    responses = sorted(attempt.glob("response_received-*.json"))
+    result = attempt / "result.json"
+    error = attempt / "error.json"
+    if not starts and not finishes and not responses and not result.exists() and not error.exists():
+        # A crash before the API-start journal is still an explicit interruption.
+        return None
+    if len(starts) != 1 or type(read_json(starts[0]).get("attempt")) is not int or read_json(starts[0])["attempt"] != 1 or len(finishes) > 1 or len(responses) > 1:
+        raise InputError("Recovery must retain exactly one API-start journal")
+    if not result.is_file() and not error.is_file():
+        # An interrupted request is an explicit unknown outcome, not a score.
+        return None
+    saved = read_json(result if result.is_file() else error)
+    metadata = saved["metadata"]
+    history = metadata.get("attempts")
+    if type(metadata.get("call_count")) is not int or metadata["call_count"] != 1 or type(metadata.get("retry_count")) is not int or metadata["retry_count"] != 0 or not isinstance(history, list) or len(history) != 1:
+        raise InputError("Recovery requires one recorded API call without retries")
+    if history[0].get("attempt") != 1 or len(finishes) != 1 or fingerprint(read_json(finishes[0])) != fingerprint(history[0]):
+        raise InputError("Recovery completion journal differs from saved API history")
+    instruction = metadata.get("instruction_hash")
+    if not isinstance(instruction, str) or re.fullmatch(r"[0-9a-f]{64}", instruction) is None:
+        raise InputError("Recovery lacks the actual instruction hash")
+    generation = metadata.get("generation_settings")
+    if metadata.get("api_style") != manifest.get("api_style") or not isinstance(generation, dict) or generation.get("structured_output") != manifest.get("structured_output") or generation.get("max_output_tokens") != manifest["preflight"].get("max_output_tokens"):
+        raise InputError("Recovery settings differ from the saved manifest")
+    if result.is_file():
+        if len(responses) != 1:
+            raise InputError("Recovery success requires the original provider response journal")
+        response = read_json(responses[0])
+        if response.get("attempt") != 1:
+            raise InputError("Recovery response has a different attempt number")
+        envelope = response["response"]
+        if envelope.get("model") != model_name or fingerprint(parse_json(_text(envelope, metadata["api_style"]))) != fingerprint(saved["assessment"]):
+            raise InputError("Recovery assessment differs from the original provider response")
+    return instruction
+
+
+def export_submission_with_provenance(records, checklist, run_dir, team_name, model_name,
                       model_mode, dataset, allow_unprocessed=False, *,
-                      served_model_name=None):
-    """Build a complete organizer-format dict without model calls or publication.
+                      served_model_name=None, recovery_run_dir=None):
+    """Return (official JSON, private provenance), without model calls.
 
     Failed/interrupted assessments remain explicit error records. Never-started
     records require allow_unprocessed=True; otherwise a partial run is rejected.
@@ -217,15 +295,58 @@ def export_submission(records, checklist, run_dir, team_name, model_name,
     directory = Path(run_dir)
     if not directory.is_dir() or not (directory / "manifest.json").is_file():
         raise InputError("Submission requires an existing durable batch run")
+    recovery = Path(recovery_run_dir) if recovery_run_dir is not None else None
+    if recovery is not None:
+        if not recovery.is_dir() or not (recovery / "manifest.json").is_file():
+            raise InputError("Recovery requires an existing durable batch run")
+        if recovery.resolve().is_relative_to(directory.resolve()) or directory.resolve().is_relative_to(recovery.resolve()):
+            raise InputError("Recovery and original runs must be separate directories")
     results = []
-    with run_lock(directory), _checked_artifacts():
+    provenance_rows = []
+    runs = {"baseline": directory, **({"recovery": recovery} if recovery is not None else {})}
+    with ExitStack() as locks, _checked_artifacts():
+        for path in sorted(runs.values(), key=lambda p: str(p.resolve())):
+            locks.enter_context(run_lock(path))
+        snapshots = {name: _snapshot(path) for name, path in runs.items()}
         items = _manifest(directory, source, checklist, served_name)
+        original_states = []
         for index, (record, item) in enumerate(zip(source, items), 1):
             record_dir = directory / "records" / f"{index:04d}"
             _attempts(record_dir, record, item, checklist, served_name)
             # Reuse the existing response validator and shared scorer for every
             # saved success; ambiguous or tampered histories are hard failures.
             state = _record_state(record_dir, record, checklist, item)
+            original_states.append(state)
+        replacements = {}
+        if recovery is not None:
+            failed_records = [record for record, state in zip(source, original_states) if state["state"] == "error"]
+            if not failed_records:
+                raise InputError("Recovery requires original processing-error records; successes cannot be replaced")
+            recovery_items = _manifest(recovery, failed_records, checklist, served_name)
+            original_manifest, recovery_manifest = read_json(directory / "manifest.json"), read_json(recovery / "manifest.json")
+            if type(recovery_manifest.get("max_attempts")) is not int or recovery_manifest["max_attempts"] != 1:
+                raise InputError("Recovery manifest must limit API attempts to one")
+            if any(original_manifest.get(key) != recovery_manifest.get(key) for key in ("api_style", "structured_output")):
+                raise InputError("Recovery model API format differs from the original run")
+            instruction_hashes = set()
+            for index, (record, item) in enumerate(zip(failed_records, recovery_items), 1):
+                record_dir = recovery / "records" / f"{index:04d}"
+                instruction = _recovery_attempt(record_dir, record, item, checklist, served_name, recovery_manifest)
+                if instruction is not None:
+                    instruction_hashes.add(instruction)
+                state = _record_state(record_dir, record, checklist, item)
+                replacements[record["conversation_id"]] = (record_dir, item, state)
+            if len(instruction_hashes) > 1:
+                raise InputError("Recovery run mixes instruction versions")
+        for index, (record, item, state) in enumerate(zip(source, items, original_states), 1):
+            record_dir = directory / "records" / f"{index:04d}"
+            origin = "baseline"
+            if record["conversation_id"] in replacements:
+                record_dir, item, state = replacements[record["conversation_id"]]
+                origin = "recovery"
+            provenance_rows.append({"conversation_id": record["conversation_id"],
+                "dialogue_hash": fingerprint(record), "source": origin,
+                **_selected_provenance(record_dir, state)})
             if state["state"] == "pending" and not allow_unprocessed:
                 raise InputError("Submission has unprocessed records; explicit allow_unprocessed is required")
             if state["state"] != "validated":
@@ -250,6 +371,27 @@ def export_submission(records, checklist, run_dir, team_name, model_name,
                             "criteria": criteria, "score": {
                                 "final_score": float(score["total_score"]),
                                 "critical_flag": score["gross_error"]}})
+        if any(_snapshot(path) != snapshots[name] for name, path in runs.items()):
+            raise InputError("Submission run artifacts changed during export")
+        manifests = {name: {"path": str(path.resolve()),
+            "manifest_hash": fingerprint(read_json(path / "manifest.json")),
+            "artifact_sha256": snapshots[name]} for name, path in runs.items()}
     submission = {"schema_version": "1.0", "team_name": team_name,
                   "model": {"mode": model_mode, "name": model_name}, "results": results}
-    return validate_submission(submission, source, dataset)
+    validate_submission(submission, source, dataset)
+    provenance = {"format": "cqa-submission-composition-1", "dataset": dataset,
+        "dataset_hash": fingerprint(source), "checklist_hash": fingerprint(checklist),
+        "model": {"name": model_name, "served_name": served_name, "mode": model_mode},
+        "submission_hash": fingerprint(submission), "runs": manifests,
+        "results": [{**row, "exported_status": result["status"]} for row, result in zip(provenance_rows, results)],
+        "policy": "Preserve original successes; exactly one new recovery observation for every original processing error. Different instruction hashes remain separate; no unified run manifest is fabricated."}
+    return submission, provenance
+
+
+def export_submission(records, checklist, run_dir, team_name, model_name,
+                      model_mode, dataset, allow_unprocessed=False, *,
+                      served_model_name=None, recovery_run_dir=None):
+    """Build official JSON; use the provenance companion when composing runs."""
+    return export_submission_with_provenance(records, checklist, run_dir, team_name,
+        model_name, model_mode, dataset, allow_unprocessed=allow_unprocessed,
+        served_model_name=served_model_name, recovery_run_dir=recovery_run_dir)[0]
