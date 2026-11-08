@@ -9,6 +9,7 @@ from typing import Literal
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException
 from starlette.staticfiles import StaticFiles
 
@@ -96,6 +97,12 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
             executor.shutdown(wait=True, cancel_futures=True)
 
     app = FastAPI(title="DOOMSDAY CQA Backend", version="1", lifespan=lifespan)
+    # Same-origin frontend needs no CORS. Separate local dev servers can opt in
+    # with exact origins; never expose this unauthenticated API to every origin.
+    origins = [origin.strip() for origin in os.environ.get("DOOMSDAY_CORS_ORIGINS", "").split(",")
+               if origin.strip()]
+    if "*" in origins:
+        raise ValueError("DOOMSDAY_CORS_ORIGINS requires explicit origins, not '*'")
 
     @app.exception_handler(APIError)
     async def api_error(request, exc):
@@ -214,4 +221,9 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
     # Only explicitly public build output is served, never repository/context.
     if public_path.is_dir():
         app.mount("/", StaticFiles(directory=public_path, html=True), name="frontend")
+    # Outermost user middleware also decorates safe_errors responses.
+    if origins:
+        app.add_middleware(CORSMiddleware, allow_origins=origins,
+                           allow_methods=["GET", "POST"],
+                           allow_headers=["Accept", "Content-Type"], allow_credentials=False)
     return app

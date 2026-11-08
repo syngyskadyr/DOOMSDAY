@@ -7,7 +7,7 @@ never copied into the submission.
 """
 from collections import Counter
 from contextlib import contextmanager, ExitStack
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from importlib.resources import files
 from pathlib import Path
 import hashlib
@@ -25,6 +25,14 @@ CRITERION_CODES = {
     "01": "contact", "02": "discovery", "03": "identification",
     "04": "consultation", "05": "empathy", "06": "dialogue",
     "07": "closure", "08": "critical",
+}
+# Appendix JSON 1.0 is fixed, unlike the editable application checklist.
+# Independently verify exported arithmetic, without inventing an ML assessment
+# from the lossy official representation (which omits checked_range/violations).
+OFFICIAL_SCALES = {
+    "contact": (10, 1), "discovery": (15, 1), "identification": (20, 1),
+    "consultation": (20, 20), "empathy": (15, 1), "dialogue": (15, 10),
+    "closure": (5, 1),
 }
 # Pin the original snapshot, including conditions, discrete scales and weights.
 OFFICIAL_CHECKLIST_HASH = "7e57b9aa24a3ef1bef9c6c7c64ad977402e2986cd710d491376a697fe0a0d13e"
@@ -83,6 +91,16 @@ def validate_submission(value, records, dataset):
         score = Decimal(str(result["score"]["final_score"]))
         if not score.is_finite() or score != score.quantize(Decimal("0.01")):
             raise InputError("Submission final_score must have at most two decimal places")
+        earned, weight = Decimal(0), Decimal(0)
+        for row in result["criteria"]:
+            if row["criterion_id"] == "critical" or row["value"] is None:
+                continue
+            base, maximum = OFFICIAL_SCALES[row["criterion_id"]]
+            weight += base
+            earned += Decimal(int(row["value"])) * base / maximum
+        expected_score = (100 * earned / weight).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if score != expected_score:
+            raise InputError("Submission final_score differs from official criterion values")
     return value
 
 

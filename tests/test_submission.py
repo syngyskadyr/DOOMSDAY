@@ -238,7 +238,7 @@ class SubmissionTests(unittest.TestCase):
         self.complete()
         original = self.export()
         for kind in ("boolean_as_integer", "integer_as_boolean", "invalid_scale", "illegal_na", "duplicate_criterion",
-                     "duplicate_id", "extra_id", "missing_id", "score_string", "score_precision", "flag_mismatch", "evidence_zero", "evidence_outside", "extra_field"):
+                     "duplicate_id", "extra_id", "missing_id", "score_string", "score_precision", "score_arithmetic", "flag_mismatch", "evidence_zero", "evidence_outside", "extra_field"):
             with self.subTest(kind=kind):
                 output = deepcopy(original)
                 row = output["results"][0]
@@ -252,6 +252,7 @@ class SubmissionTests(unittest.TestCase):
                 if kind == "missing_id": output["results"].pop()
                 if kind == "score_string": row["score"]["final_score"] = "100.00"
                 if kind == "score_precision": row["score"]["final_score"] = 99.999
+                if kind == "score_arithmetic": row["score"]["final_score"] = 99.99
                 if kind == "flag_mismatch": row["score"]["critical_flag"] = True
                 if kind == "evidence_zero": row["criteria"][0]["evidence_turns"] = [0]
                 if kind == "evidence_outside": row["criteria"][0]["evidence_turns"] = [7]

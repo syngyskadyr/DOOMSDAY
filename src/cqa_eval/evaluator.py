@@ -52,6 +52,8 @@ class Settings:
                          structured_output=os.getenv("LLM_STRUCTURED_OUTPUT", "json_schema").strip(),
                          timeout=float(os.getenv("LLM_TIMEOUT_SECONDS", "90")),
                          max_attempts=int(os.getenv("LLM_MAX_ATTEMPTS", "2")),
+                         max_output_tokens=(int(os.environ["LLM_MAX_OUTPUT_TOKENS"])
+                                            if os.getenv("LLM_MAX_OUTPUT_TOKENS", "").strip() else None),
                          input_price=price("LLM_INPUT_USD_PER_MILLION"),
                          output_price=price("LLM_OUTPUT_USD_PER_MILLION"))
             result.validate(require_complete=False)
