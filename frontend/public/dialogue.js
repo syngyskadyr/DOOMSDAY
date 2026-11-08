@@ -148,14 +148,19 @@ function resultPanel(ctx, evaluation, jump) {
   const sections = new Map(final.calculation.sections.map((row) => [row.section_id, row]));
   const changed = new Set(evaluation.appeals.filter((item) => item.resolution?.decision === "change").map((item) => item.criterion_id));
   const open = new Map(evaluation.appeals.filter((item) => item.status === "open").map((item) => [item.criterion_id, item.appeal_id]));
-  const appealAction = (criterion, row) => open.has(criterion.id)
+  const appealAction = (criterion, row) => evaluation.import_source?.read_only
+    ? h("span", { class: "muted note" }, "Импортированный результат · только чтение")
+    : open.has(criterion.id)
     ? linkButton("Апелляция на рассмотрении", appealHref({ id: open.get(criterion.id), status: "open" }), { kind: "quiet small" })
     : button("Подать апелляцию", { kind: "quiet small", glyph: "appeals",
       onclick: () => requestAppeal(ctx, evaluation, criterion, row) });
   return h("section", { class: "panel assessment-panel" },
     panelHeading("Результат оценки", checklist.title + " · версия " + evaluation.checklist_version, statusBadge(evaluation.status)),
+    evaluation.import_source?.kind === "official_submission" &&
+      notice("Сохранённая оценка из официального DEV-файла. Баллы, объяснения и ссылки на реплики импортированы без повторного запуска модели. Доступно только чтение: для пересмотра нужен полный исходный ответ модели.", "info"),
     h("p", { class: "muted result-provenance" },
-      "Модель: " + (evaluation.metadata?.model || "не указана сервером") + " · " + dateLabel(evaluation.created_at) +
+      "Модель: " + (evaluation.metadata?.model || "не указана сервером") +
+      (evaluation.import_source ? " · импортировано: " : " · ") + dateLabel(evaluation.created_at) +
       " · критериев: " + checklist.criteria.length),
     h("div", { class: "assessment-summary" },
       h("div", {}, h("span", { class: "field-label" }, "Итоговый балл"), h("strong", { class: "total-score" }, scoreLabel(final.calculation.total_score))),

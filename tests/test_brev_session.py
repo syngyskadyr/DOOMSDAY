@@ -9,6 +9,9 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
+if importlib.util.find_spec("fcntl") is None:
+    raise unittest.SkipTest("Brev lifecycle uses POSIX fcntl; run these tests on Linux")
+
 FILE = Path(__file__).resolve().parents[1] / "scripts/brev/session.py"
 spec = importlib.util.spec_from_file_location("brev_session_tool", FILE)
 tool = importlib.util.module_from_spec(spec)

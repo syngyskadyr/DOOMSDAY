@@ -9,6 +9,7 @@ from typing import Literal
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException
 from starlette.staticfiles import StaticFiles
 
@@ -63,7 +64,7 @@ def revision_field(body):
 
 
 def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHECKLIST, adapter=None, frontend_path=None,
-               env_file=None, load_env_file=True, model_probe=None):
+               env_file=None, load_env_file=True, model_probe=None, results_path=None):
     load_environment(env_file, enabled=load_env_file)
     adapter = adapter if adapter is not None else MLAdapter()
     model_probe = model_probe if model_probe is not None else ModelReadiness(adapter._settings)
@@ -86,6 +87,9 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
                 logger.info("DEV import: imported=%s skipped=%s", imported["imported"], imported["skipped"])
             else:
                 logger.warning("DEV file absent; import JSON with POST /api/conversations/import.")
+        if results_path is not None:
+            imported = service.import_official_results(parse_json(Path(results_path).read_bytes()))
+            logger.info("Official DEV results: imported=%s skipped=%s", imported["imported"], imported["skipped"])
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="cqa-evaluation")
         app.state.executor = executor
         try:
@@ -96,6 +100,12 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
             executor.shutdown(wait=True, cancel_futures=True)
 
     app = FastAPI(title="DOOMSDAY CQA Backend", version="1", lifespan=lifespan)
+    # Same-origin frontend needs no CORS. Separate local dev servers can opt in
+    # with exact origins; never expose this unauthenticated API to every origin.
+    origins = [origin.strip() for origin in os.environ.get("DOOMSDAY_CORS_ORIGINS", "").split(",")
+               if origin.strip()]
+    if "*" in origins:
+        raise ValueError("DOOMSDAY_CORS_ORIGINS requires explicit origins, not '*'")
 
     @app.exception_handler(APIError)
     async def api_error(request, exc):
@@ -214,4 +224,9 @@ def create_app(*, db_path=None, dev_path=DEFAULT_DEV, checklist_path=DEFAULT_CHE
     # Only explicitly public build output is served, never repository/context.
     if public_path.is_dir():
         app.mount("/", StaticFiles(directory=public_path, html=True), name="frontend")
+    # Outermost user middleware also decorates safe_errors responses.
+    if origins:
+        app.add_middleware(CORSMiddleware, allow_origins=origins,
+                           allow_methods=["GET", "POST"],
+                           allow_headers=["Accept", "Content-Type"], allow_credentials=False)
     return app
