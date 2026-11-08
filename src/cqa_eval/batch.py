@@ -1,10 +1,12 @@
 """Sequential, durable batch processing using the existing evaluator and validator."""
 from collections import Counter
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from decimal import Decimal
 import json
 import os
+from numbers import Integral
 from pathlib import Path
 import tempfile
 
@@ -76,6 +78,32 @@ def validate_chat_template_kwargs(value):
     return deepcopy(value)
 
 
+def _count_input_ids(encoded):
+    """Count one complete token sequence, never mapping keys or batch rows."""
+    if isinstance(encoded, Mapping):
+        if "input_ids" not in encoded:
+            raise InputError("Tokenizer output has no input_ids")
+        encoded = encoded["input_ids"]
+    shape = getattr(encoded, "shape", None)
+    if shape is not None:
+        # Tensor/ndarray: the final dimension is the sequence length.
+        # This caller sends one conversation, so multiple batch rows are invalid.
+        if len(shape) not in (1, 2) or (len(shape) == 2 and shape[0] != 1):
+            raise InputError("Tokenizer must return exactly one token sequence")
+        count = shape[-1]
+    elif isinstance(encoded, (list, tuple)):
+        if len(encoded) == 1 and isinstance(encoded[0], (list, tuple)):
+            encoded = encoded[0]
+        if any(isinstance(token, bool) or not isinstance(token, Integral) or token < 0 for token in encoded):
+            raise InputError("Tokenizer returned invalid input_ids")
+        count = len(encoded)
+    else:
+        raise InputError("Tokenizer returned unsupported input_ids")
+    if isinstance(count, bool) or not isinstance(count, Integral) or count <= 0:
+        raise InputError("Tokenizer returned an invalid token count")
+    return int(count)
+
+
 def load_token_counter(path, *, chat_template_kwargs=None):
     """Local tokenizer only. No model weights, downloads or remote Python code."""
     kwargs = validate_chat_template_kwargs({} if chat_template_kwargs is None else chat_template_kwargs)
@@ -92,9 +120,10 @@ def load_token_counter(path, *, chat_template_kwargs=None):
     def count(prepared):
         messages = [{"role": key, "content": prepared[key]} for key in ("system", "user")]
         try:
-            return len(tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, **kwargs))
+            encoded = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, **kwargs)
         except (ValueError, TypeError, ImportError):
             raise InputError("Cannot apply local chat template; it must match the serving template") from None
+        return _count_input_ids(encoded)
     # The same variables used to count are bound into the durable run identity.
     count.chat_template_kwargs = kwargs
     return count

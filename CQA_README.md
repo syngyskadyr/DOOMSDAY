@@ -261,6 +261,20 @@ defaults токенизатора и совместимость manifest сущ�
 быть установлены на сервере. Автоматически проверить скрытые серверные настройки невозможно;
 после smoke сверяйте `usage.input_tokens` с preflight. Несовпадение требует
 проверки template/режима thinking до массового запуска.
+
+Считается полный запрос после chat template: system prompt, checklist,
+response schema, весь транскрипт и префикс генерации. Для `BatchEncoding`
+берётся `input_ids`, для tensor/array — последнее измерение `shape[-1]`;
+длина словаря или размер batch не являются числом токенов. Неизвестный формат,
+пустая последовательность или несколько последовательностей вызывают ошибку.
+Старые отчёты с постоянным `input_tokens=2` недействительны: после обновления
+повторите `--preflight` в новый файл с тем же локальным serving tokenizer.
+При `context_window=8192`, `max_output_tokens=2560`, `margin=512` вход должен
+занимать не более **5120** токенов. Если `oversized_ids` не пуст, живой batch
+блокируется. Разговоры автоматически не обрезаются; увеличение значения
+`--context-window` допустимо только вместе с соответствующей проверенной
+конфигурацией сервера, а не для обхода preflight.
+
 Основание: [Hugging Face chat templates](https://huggingface.co/docs/transformers/chat_templating)
 и [vLLM OpenAI-compatible server](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html).
 Batch пока требует `LLM_API_STYLE=chat_completions`; одиночный интерфейс
