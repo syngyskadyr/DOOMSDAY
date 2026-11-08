@@ -9,6 +9,7 @@ import time
 from types import SimpleNamespace
 import unittest
 
+import httpx
 from fastapi.testclient import TestClient
 
 from backend.app import create_app
@@ -34,7 +35,7 @@ def server(*, health_status=200, models_status=200, models=None, invalid=False, 
             body = b"invalid" if invalid else json.dumps({"data": models if models is not None else [{"id": "test-model"}]}).encode()
             try:
                 self.wfile.write(body)
-            except BrokenPipeError:
+            except ConnectionError:
                 pass
 
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -96,10 +97,17 @@ class ModelHealthTests(unittest.TestCase):
         self.assertEqual(result["reason"], "timeout")
 
     def test_connection_failure_is_unavailable(self):
-        with server() as (settings, _):
-            pass
-        result = self.probe(settings).check()
+        # A closed loopback port can time out on Windows before refusing the
+        # connection. Exercise the refusal branch without OS timing assumptions.
+        settings = SimpleNamespace(base_url="http://127.0.0.1:1/v1", api_key="private-inference-test-key",
+                                   model="test-model", api_style="chat_completions")
+        def refused(request):
+            raise httpx.ConnectError("Synthetic connection refusal", request=request)
+        def client_factory(**kwargs):
+            return httpx.Client(transport=httpx.MockTransport(refused), **kwargs)
+        result = self.probe(settings, client_factory=client_factory).check()
         self.assertEqual(result["reason"], "connection_failed")
+        self.assertEqual(result["model_status"], "unavailable")
         self.assert_safe(result)
 
     def test_invalid_model_list_is_unknown(self):
